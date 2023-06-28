@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- <link rel="stylesheet" href="/Website/style/website.css"> -->
+    <title>website</title>
+    <style>
+        .container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh; /* Adjust the heighzt as needed */
+        font-size: 1rem;
+        font-family: 'Roboto';
+}
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 id="heading"></h1>
+    </div>
+    <script>
+        fetch('vertretung.json')
+        .then(response => response.json())
+    .then(data => {
+    const heading = document.getElementById('heading');
+    let content = '';
+
+    for (let i = 0; i < data.length; i++) {
+      if (data[i] === 'E') {
+        content += '<br>';
+      } else {
+        content += data[i] + ' ';
+      }
+    }
+
+    heading.innerHTML = content.trim();
+  })
+  .catch(error => console.error('Error:', error));
+
+
+    </script>
+</body>
+</html>
