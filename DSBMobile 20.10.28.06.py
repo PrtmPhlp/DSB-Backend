@@ -56,7 +56,7 @@ def prep_API_URL():
 
 
 # ? Gather's Content from every possible URL and see's if the day is in the future
-def act_future_list_check():
+def act_future_list_check(): 
     print(colored("Info: Creating URL", 'yellow', attrs=['bold']))
     # Iterieren über die Liste, um den richtigen Eintrag zu finden
     for posting in data:

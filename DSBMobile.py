@@ -10,52 +10,35 @@ from datetime import datetime
 import argparse
 import subprocess
 
-# ? Arguments for CLI
-parser = argparse.ArgumentParser(description='Vertretungsplan Skript mithilfe API')
-parser.add_argument("day",type=int, nargs='?', help="Tag für den Vertretungsplan, z.B.: 4")
-parser.add_argument("verbose",type=int, nargs='?', help="De / aktiviert den stillen Modus")
-args = parser.parse_args()
+# CLI-Argumente
+def parse_args():
+    parser = argparse.ArgumentParser(description='Vertretungsplan Skript mithilfe API')
+    parser.add_argument("day", type=int, nargs='?', help="Tag für den Vertretungsplan, z.B.: 4")
+    parser.add_argument("verbose", type=int, nargs='?', help="De-/aktiviert den stillen Modus")
+    return parser.parse_args()
 
-if args.day is None:
-    day = 1
-else:
-    day = args.day
-
-if args.verbose is None or args.verbose == 0:
-    global verbose
-    verbose = 0
-else:
-    verbose = 1
-    import os
-    # umleiten von stdout auf /dev/null
-    devnull = open(os.devnull, 'w')
-    old_stdout = os.dup(1)
-    os.dup2(devnull.fileno(), 1)
-
-
-# ? Internet Check. If not then exit
-def prep_check_internet():
+# Internetverbindung überprüfen
+def check_internet_connection():
     try:
         requests.get('http://www.google.com', timeout=3)
         return True
     except requests.exceptions.ConnectionError:
         return False
 
+# Vorbereitung: Internetverbindung überprüfen
+def prep_check_internet():
     if not check_internet_connection():
         print(colored('Error: No internet connection', 'red', attrs=['bold', 'blink']))
         exit()
 
-
-# ? Use PyDSB and gather URLs
+# Vorbereitung: API-Anfrage senden und URLs abrufen
 def prep_API_URL():
     print(colored("Info: Sending API request", 'yellow', attrs=['bold']))
-
     dsb = PyDSB("274583", "johann")
     global data
     data = dsb.get_postings()
 
-
-# ? Gather's Content from every possible URL and see's if the day is in the future
+# Überprüfen, ob der Tag in der Zukunft liegt
 def act_future_list_check():
     print(colored("Info: Creating URL", 'yellow', attrs=['bold']))
     # Iterieren über die Liste, um den richtigen Eintrag zu finden
@@ -163,6 +146,7 @@ def act_main_vertretung():
                 stop_at_empty_row = True
 
 def aft_combiner():
+    #print(vertretung_1)
     if 'vertretung_1' in globals():
         #print("Variable x wurde definiert.")
         global kombiniert
@@ -173,6 +157,7 @@ def aft_combiner():
         global json_string
         try:
             json_string = json.dumps(kombiniert)
+            print(json_string)
         #    print("aft_combiner: " + json_string)
         except NameError:
             print(colored("Keine Vertretungen verfügbar", 'yellow', attrs=['bold']))
@@ -220,13 +205,31 @@ def andere_klassen():
             error_msg = f"Fehler: Keine Vertretungsinformationen gefunden für Klasse {klasse}."
             print(colored(error_msg, 'red', attrs=['bold']))
 
-#! Function menu
-prep_check_internet()
-prep_API_URL()
-act_future_list_check()
-act_main_vertretung()
-aft_combiner()
+#! Main Function:
+def main():
+    args = parse_args()
+    global day
+    day = args.day if args.day is not None else 1
+    global verbose 
+    verbose = args.verbose if args.verbose is not None and args.verbose != 0 else 0
+
+    if verbose == 1:
+        import os
+        devnull = open(os.devnull, 'w')
+        old_stdout = os.dup(1)
+        os.dup2(devnull.fileno(), 1)
+    
+    prep_check_internet()
+    prep_API_URL()
+    act_future_list_check()
+    act_main_vertretung()
+    aft_combiner()
+
+#if __name__ == "__main__":
+main()
+
 file_path = 'vertretung.json'
+#print(json_string)
 try:
     speicher_versuch(file_path, json_string)
     try:
