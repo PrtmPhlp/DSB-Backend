@@ -21,7 +21,7 @@ expect {
         puts "Timed out. The word 'fingerprint' not found in the output."
         exit 1
     }
-  }
+}
 
 #expect "(cperterm@home.ktk.de) Password:"
 #send "$password\r"
