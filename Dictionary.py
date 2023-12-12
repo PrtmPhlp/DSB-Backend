@@ -1,32 +1,33 @@
-url = "https://www.goerres-koblenz.de/kollegium/"
 import json
-import json
+
 import requests
 from bs4 import BeautifulSoup
+
+url = "https://www.goerres-koblenz.de/kollegium/"
 # GET-Anfrage an die Website senden
 response = requests.get(url)
 
 # Das Encoding der Response-Inhalte manuell auf UTF-8 setzen
-response.encoding = 'utf-8'
+response.encoding = "utf-8"
 
 # BeautifulSoup-Objekt erstellen
-soup = BeautifulSoup(response.content, 'html.parser')
+soup = BeautifulSoup(response.content, "html.parser")
 
 # Tabelle finden
-table = soup.find('table')
+table = soup.find("table")
 
 # Alle Zeilen der Tabelle finden
-rows = table.find_all('tr')
+rows = table.find_all("tr")
 
 # Ein leeres Python-Dictionary erstellen
 my_dict = {}
 
 # Die ersten vier td-Tags jeder Zeile durchlaufen und zum Dictionary hinzufügen
 for row in rows:
-    cols = row.find_all('td')
+    cols = row.find_all("td")
     if cols:
         key1 = cols[0].text.strip()
-        key2 = cols[1].text.strip() + ' ' + cols[2].text.strip()
+        key2 = cols[1].text.strip() + " " + cols[2].text.strip()
         # Konvertierung der Unicode-Zeichen in Umlaute
         value = cols[3].text.strip()
         # Konvertierung der Unicode-Zeichen in Umlaute
@@ -38,9 +39,9 @@ for row in rows:
             my_dict[key1] = {key2: value}
 
 # Das Python-Dictionary in JSON konvertieren und in die Datei "output2.json" schreiben
-with open('lehrer.json', 'w', encoding='utf-8') as f:
+with open("lehrer.json", "w", encoding="utf-8") as f:
     json.dump(my_dict, f, ensure_ascii=False)
-    
+
 """
 import json
 

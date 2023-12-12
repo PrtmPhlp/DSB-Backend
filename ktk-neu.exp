@@ -1,0 +1,31 @@
+#!/usr/bin/expect
+
+set username [exec cat secrets/expect-username.txt]
+set password [exec cat secrets/expect-password.txt]
+set server [exec cat secrets/expect-server.txt]
+set local_file "vertretung.json"
+set remote_file "vertretung.json"
+
+spawn sftp $username@$server
+
+expect {
+    -re "fingerprint" {
+        send "yes\r"
+	expect "(cperterm@home.ktk.de) Password:"
+	send "$password\r"
+    }
+    "(cperterm@home.ktk.de) Password: " {
+        send "$password\r"
+    }
+    timeout {
+        puts "Timed out. The word 'fingerprint' not found in the output."
+        exit 1
+    }
+  }
+
+#expect "(cperterm@home.ktk.de) Password:"
+#send "$password\r"
+expect "sftp>"
+#send "put $local_file /home/cperterm/www/dsb/$remote_file\r"
+#expect "sftp>"
+send "exit\r"

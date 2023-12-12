@@ -1,47 +1,64 @@
 <!DOCTYPE html>
 <html lang="de">
+
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- <link rel="stylesheet" href="/Website/style/website.css"> -->
-    <title>website</title>
+    <title>Vertretungsplan</title>
     <style>
-        .container {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh; /* Adjust the heighzt as needed */
-        font-size: 1rem;
-        font-family: 'Roboto';
-}
-
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: 'Roboto', Arial, Helvetica, sans-serif;
+        }
+        table {
+            border-collapse: collapse;
+            max-width: 95%; /* Erhöhte maximale Breite der Tabelle */
+            margin: 0 auto; /* Zentriert die Tabelle */
+            font-size: 2.5rem;
+        }
+        th, td {
+            border: 2.5px solid black;
+            /* border: 1px solid black; */
+            padding: 50px;
+            text-align: left;
+        }
     </style>
 </head>
+
 <body>
-    <div class="container">
-        <h1 id="heading"></h1>
-    </div>
+    <table id="vertretungsplan"></table>
+
     <script>
-        fetch('vertretung.json')
-        .then(response => response.json())
-    .then(data => {
-    const heading = document.getElementById('heading');
-    let content = '';
+        fetch('ausgeschrieben.json')
+            .then(response => response.json())
+            .then(data => {
+                const table = document.getElementById('vertretungsplan');
+                let content = '<tr><th>Stunde</th><th>Lehrer</th><th>Kurs</th><th>Raum</th><th>Hinweis</th></tr>';
+                let row = '<tr>';
 
-    for (let i = 0; i < data.length; i++) {
-      if (data[i] === 'E') {
-        content += '<br>';
-      } else {
-        content += data[i] + ' ';
-      }
-    }
+                for (let item of data) {
+                    if (item === 'Z') {
+                        content += row + '</tr>';
+                        row = '<tr>';
+                    } else {
+                        row += '<td>' + item + '</td>';
+                    }
+                }
+                if (row !== '<tr>') {
+                    content += row + '</tr>';
+                }
 
-    heading.innerHTML = content.trim();
-  })
-  .catch(error => console.error('Error:', error));
-
-
+                table.innerHTML = content;
+            })
+            .catch(error => console.error('Error:', error));
     </script>
+
 </body>
+
 </html>
