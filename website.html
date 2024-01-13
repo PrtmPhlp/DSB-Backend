@@ -38,26 +38,34 @@
         fetch('ausgeschrieben.json')
             .then(response => response.json())
             .then(data => {
-                const table = document.getElementById('vertretungsplan');
-                let content = '<tr><th>Stunde</th><th>Lehrer</th><th>Kurs</th><th>Raum</th><th>Hinweis</th></tr>';
-                let row = '<tr>';
-
-                for (let item of data) {
-                    if (item === 'Z') {
-                        content += row + '</tr>';
-                        row = '<tr>';
-                    } else {
-                        row += '<td>' + item + '</td>';
+                const body = document.querySelector('body');
+                // Check if the data is an array with one element "Keine Vertretungen verfügbar"
+                if (Array.isArray(data) && data.length === 1 && data[0] === "Keine Vertretungen verfügbar!") {
+                    body.innerHTML = '<h1>' + data[0] + '</h1>';
+                } else {
+                    const table = document.getElementById('vertretungsplan');
+                    let content = '<tr><th>Stunde</th><th>Lehrer</th><th>Kurs</th><th>Raum</th><th>Hinweis</th></tr>';
+                    let row = '<tr>';
+    
+                    for (let item of data) {
+                        if (item === 'Z') {
+                            content += row + '</tr>';
+                            row = '<tr>';
+                        } else {
+                            row += '<td>' + item + '</td>';
+                        }
                     }
+                    if (row !== '<tr>') {
+                        content += row + '</tr>';
+                    }
+    
+                    table.innerHTML = content;
                 }
-                if (row !== '<tr>') {
-                    content += row + '</tr>';
-                }
-
-                table.innerHTML = content;
             })
             .catch(error => console.error('Error:', error));
     </script>
+    
+    
 
 </body>
 
