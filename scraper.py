@@ -3,6 +3,7 @@
 # ! Imports
 
 # ? Logging and Argsparse
+import random
 import coloredlogs
 import logging
 import argparse
@@ -50,8 +51,10 @@ def prep_API_URL():
     return baseUrl
 
 
+# ? Prepare URLs and save to "posts" list
 baseUrl = prep_API_URL()
 
+logger.info("Extracting Posts")
 
 response = requests.get(baseUrl)
 html = response.content.decode('utf-8')
@@ -62,8 +65,16 @@ links = soup.find('ul', class_='day-index').find_all('a')
 # Extract href attributes from the 'a' tags
 href_links = [link.get('href') for link in links]
 baseUrl = baseUrl.split("index.html")[0]
+posts_dict = {}
+
 for link in href_links:
-    ver = baseUrl + link
-    print(ver)
+    num = str(random.randint(1, 6))
+    posts_dict[num] = baseUrl + link
+    logger.debug("Aktuell %s Einträg(e)", len(posts_dict))
+    logger.debug("Vertretungsplan Posts: %s", posts_dict)
 
 logger.info(href_links)
+print(posts_dict)
+
+# Logging the information
+logger.info("Created dictionary : %s", posts_dict)
