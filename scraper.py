@@ -51,30 +51,44 @@ def prep_API_URL():
     return baseUrl
 
 
-# ? Prepare URLs and save to "posts" list
+# ? Get all representation plans from baseUrl and save in "posts_dict"
+def get_plans(baseUrl):
+    logger.info("Extracting Posts")
+
+    response = requests.get(baseUrl)
+    html = response.content.decode('utf-8')
+    soup = BeautifulSoup(html, 'html.parser')
+
+    links = soup.find('ul', class_='day-index').find_all('a')
+    logger.debug("<a> links in <ul>, found by soup: %s", links)
+
+    href_links = [link.get('href') for link in links]
+    logger.debug("extracted following href links: %s", href_links)
+
+    text_list = [link.text for link in links]
+
+    # remove index.html and everything after it
+    baseUrl = baseUrl.split("index.html")[0]
+
+    weekdays = ["Montag", "Dienstag", "Mittwoch",
+                "Donnerstag", "Freitag", "Samstag", "Sonntag"]
+    # remove everything from text_list except the weekday
+    extracted_weekdays = []
+    for text in text_list:
+        for weekday in weekdays:
+            if weekday in text:
+                extracted_weekdays.append(weekday)
+                break  # Stoppe die Schleife, sobald ein Wochentag gefunden wurde
+
+    posts_dict = {}
+    for i in range(len(href_links)):
+        logger.debug(text_list[i])
+        logger.debug(extracted_weekdays[i])
+        logger.debug(href_links[i])
+        posts_dict[extracted_weekdays[i]] = baseUrl + href_links[i]
+    return posts_dict
+
+
 baseUrl = prep_API_URL()
-
-logger.info("Extracting Posts")
-
-response = requests.get(baseUrl)
-html = response.content.decode('utf-8')
-soup = BeautifulSoup(html, 'html.parser')
-
-links = soup.find('ul', class_='day-index').find_all('a')
-
-# Extract href attributes from the 'a' tags
-href_links = [link.get('href') for link in links]
-baseUrl = baseUrl.split("index.html")[0]
-posts_dict = {}
-
-for link in href_links:
-    num = str(random.randint(1, 6))
-    posts_dict[num] = baseUrl + link
-    logger.debug("Aktuell %s Einträg(e)", len(posts_dict))
-    logger.debug("Vertretungsplan Posts: %s", posts_dict)
-
-logger.info(href_links)
+posts_dict = get_plans(baseUrl)
 print(posts_dict)
-
-# Logging the information
-logger.info("Created dictionary : %s", posts_dict)
