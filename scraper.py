@@ -7,6 +7,7 @@ import random
 import coloredlogs
 import logging
 import argparse
+import yaml
 
 # ? Scraping related
 import requests
@@ -35,13 +36,17 @@ else:
 logger.setLevel(logging_level)
 coloredlogs.install(fmt="%(asctime)s - %(levelname)s - \033[94m%(message)s\033[0m",
                     datefmt="%H:%M:%S", level=logging_level)
+
+# ? load dsb credentials from secrets
+with open('./secrets/secrets.yaml') as file:
+    credentials = yaml.safe_load(file)
 # ------------------------------------------------
 
 
 def prep_API_URL():
     logger.info("Sending API request")
 
-    dsb = PyDSB("274583", "johann")
+    dsb = PyDSB(credentials['dsb']['username'], credentials['dsb']['password'])
     data = dsb.get_postings()
 
     for section in data:
@@ -82,13 +87,13 @@ def get_plans(baseUrl):
 
     posts_dict = {}
     for i in range(len(href_links)):
-        logger.debug(text_list[i])
-        logger.debug(extracted_weekdays[i])
-        logger.debug(href_links[i])
+        logger.debug(f"Text list at {i+1} run: {text_list[i]}")
+        logger.debug(f"href link at {i+1} run: {href_links[i]}")
         posts_dict[extracted_weekdays[i]] = baseUrl + href_links[i]
+        logger.debug(f"posts_dict at {i+1} run: {posts_dict}")
     return posts_dict
 
 
 baseUrl = prep_API_URL()
 posts_dict = get_plans(baseUrl)
-print(posts_dict)
+logger.info(posts_dict)
