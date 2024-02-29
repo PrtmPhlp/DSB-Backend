@@ -3,17 +3,14 @@
 # ! Imports
 
 # ? Logging and Argsparse
-import random
 import coloredlogs
 import logging
 import argparse
 import yaml
 
-# ? Scraping related
+# ? Scraping
 import requests
 from bs4 import BeautifulSoup
-from datetime import datetime
-
 from pydsb import PyDSB
 # ------------------------------------------------
 # ? Arguments
@@ -30,6 +27,8 @@ if args.verbose == 0:
     logging_level = logging.CRITICAL
 elif args.verbose == 2:
     logging_level = logging.DEBUG
+    # prevent requests (urllib3) logging:
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
 else:
     logging_level = logging.INFO
 
@@ -43,7 +42,7 @@ with open('./secrets/secrets.yaml') as file:
 # ------------------------------------------------
 
 
-def prep_API_URL():
+def prep_API_URL() -> str:
     logger.info("Sending API request")
 
     dsb = PyDSB(credentials['dsb']['username'], credentials['dsb']['password'])
@@ -57,7 +56,7 @@ def prep_API_URL():
 
 
 # ? Get all representation plans from baseUrl and save in "posts_dict"
-def get_plans(baseUrl):
+def get_plans(baseUrl: str) -> dict[str, str]:
     logger.info("Extracting Posts")
 
     response = requests.get(baseUrl)
@@ -94,6 +93,15 @@ def get_plans(baseUrl):
     return posts_dict
 
 
-baseUrl = prep_API_URL()
-posts_dict = get_plans(baseUrl)
-logger.info(posts_dict)
+
+
+
+
+
+
+
+if __name__ == "__main__":
+    baseUrl = prep_API_URL()
+    posts_dict = get_plans(baseUrl)
+
+    logger.info(posts_dict)
