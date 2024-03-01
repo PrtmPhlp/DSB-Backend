@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON to HTML Table</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+
+        #myTable {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        #myTable th,
+        #myTable td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        #myTable th {
+            background-color: #f2f2f2;
+        }
+
+        #myTable tbody tr:hover {
+            background-color: #e0e0e0;
+        }
+    </style>
+</head>
+
+<body>
+    <table id="myTable" border="1">
+        <thead>
+            <tr>
+                <th>Klasse</th>
+                <th>Pos</th>
+                <th>Lehrer</th>
+                <th>Fach</th>
+                <th>Raum</th>
+                <th>Art</th>
+                <th>Info</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Table body will be dynamically populated -->
+        </tbody>
+    </table>
+
+    <script>
+        fetch('file.json')
+            .then(response => response.json())
+            .then(data => {
+                const tableBody = document.querySelector('#myTable tbody');
+                // Get the first key from the JSON object
+                const firstKey = Object.keys(data)[0];
+                // Iterate over the list associated with the first key
+                data[firstKey].forEach(rowData => {
+                    const row = document.createElement('tr');
+                    rowData.forEach(cellData => {
+                        const cell = document.createElement('td');
+                        cell.textContent = cellData;
+                        row.appendChild(cell);
+                    });
+                    tableBody.appendChild(row);
+                });
+            })
+            .catch(error => console.error('Error fetching JSON:', error));
+    </script>
+</body>
+
+</html>

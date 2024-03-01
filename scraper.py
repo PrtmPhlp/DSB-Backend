@@ -3,6 +3,8 @@
 # ! Imports
 
 # ? Logging and Argsparse
+from urllib.parse import urljoin, urlparse
+from operator import index
 import coloredlogs
 import logging
 import argparse
@@ -13,6 +15,7 @@ import requests
 from bs4 import BeautifulSoup
 from pydsb import PyDSB
 import json
+
 # ------------------------------------------------
 # ? Arguments
 parser = argparse.ArgumentParser()
@@ -43,130 +46,162 @@ with open('./secrets/secrets.yaml') as file:
 # ------------------------------------------------
 
 
-def prep_API_URL() -> str:
+def prepare_api_url(credentials: dict) -> str:
+    """
+    Prepares the API URL for the "DaVinci Touch" section from the given credentials.
+
+    :param credentials: A dictionary containing 'username' and 'password' keys for authentication.
+    :return: The base URL for "DaVinci Touch" section if found.
+    :raises KeyError: If a required credential is missing.
+    :raises Exception: For other unforeseen errors.
+    """
     logger.info("Sending API request")
     try:
-        # Your code that makes the request
         dsb = PyDSB(credentials['dsb']['username'],
                     credentials['dsb']['password'])
         data = dsb.get_postings()
-        # Process the response
     except Exception as e:
-        print("An error occurred:", e)
+        logger.error("An unexpected error occurred: %s", e)
+        raise
 
     for section in data:
         if section["title"] == "DaVinci Touch":
-            baseUrl = section["url"]
-    logger.debug("URL für DaVinci Touch: %s", baseUrl)
-    return baseUrl
-
+            base_url = section["url"]
+            logger.debug("URL for DaVinci Touch: %s", base_url)
+            return base_url
+        else:
+            raise ValueError("DaVinci Touch section not found.")
 
 # ? Get all representation plans from baseUrl and save in "posts_dict"
-def get_plans(baseUrl: str) -> dict[str, str]:
-    logger.info("Extracting Posts")
 
-    response = requests.get(baseUrl)
+
+def request_url(url: str) -> BeautifulSoup:
+    """
+    Sends a GET request to the specified URL and returns a BeautifulSoup object parsed from the HTML response.
+
+    :param url: The URL to send the request to.
+    :return: A BeautifulSoup object of the parsed HTML document.
+    :raises requests.exceptions.RequestException: If the request fails for any reason, including network issues,
+           invalid URLs, or HTTP errors.
+    """
+    try:
+        response = requests.get(url)
+        response.raise_for_status()  # Raises HTTPError for bad responses
+    except requests.exceptions.RequestException as e:
+        # Uncomment the logger statement if logging is desired.
+        # logger.error(f"Failed to fetch data from {url}: {e}")
+        raise
+
     html = response.content.decode('utf-8')
     soup = BeautifulSoup(html, 'html.parser')
+    return soup
 
-    links = soup.find('ul', class_='day-index').find_all('a')
+
+def get_plans(base_url: str) -> dict[str, str]:
+    """
+    Extracts plans from the given base URL and organizes them in a dictionary.
+
+    :param base_url: The base URL containing the plan information.
+    :return: A dictionary mapping plan identifiers to their URLs.
+    """
+    logger.info("Extracting Posts")
+    soup = request_url(base_url)
+
+    try:
+        links = soup.find('ul', class_='day-index').find_all('a')
+    except AttributeError as e:
+        logger.error(f"Error parsing HTML structure: {e}")
+        raise ValueError("Expected HTML structure not found.")
+
     logger.debug("<a> links in <ul>, found by soup: %s", links)
 
+    # Extract href attributes and link text
     href_links = [link.get('href') for link in links]
-    logger.debug("extracted following href links: %s", href_links)
-
     text_list = [link.text for link in links]
-
-    # remove index.html and everything after it
-    baseUrl = baseUrl.split("index.html")[0]
 
     weekdays = ["Montag", "Dienstag", "Mittwoch",
                 "Donnerstag", "Freitag", "Samstag", "Sonntag"]
-    # remove everything from text_list except the weekday
-    extracted_weekdays = []
-    for text in text_list:
-        for weekday in weekdays:
-            if weekday in text:
-                extracted_weekdays.append(weekday)
-                break  # Stoppe die Schleife, sobald ein Wochentag gefunden wurde
-    logger.info(f"Found following days: {extracted_weekdays}")
+    # Extract weekdays from text_list
+    extracted_weekdays = [next(
+        (weekday for weekday in weekdays if weekday in text), None) for text in text_list]
+
+    # Construct posts dictionary
     posts_dict = {}
-    for i in range(len(href_links)):
-        logger.debug(f"Text list at {i+1} run: {text_list[i]}")
-        logger.debug(f"href link at {i+1} run: {href_links[i]}")
-        posts_dict[str(i+1) + "_" + extracted_weekdays[i]
-                   ] = baseUrl + href_links[i]
-        logger.debug(f"posts_dict at {i+1} run: {posts_dict}")
+    for i, (href, weekday) in enumerate(zip(href_links, extracted_weekdays)):
+        if weekday:  # Only include entries with a valid weekday
+            full_url = urljoin(base_url, href)
+            posts_dict[f"{i+1}_{weekday}"] = full_url
+            logger.debug(f"Added {weekday} to posts_dict: {full_url}")
 
     return posts_dict
 
 
-def main_scraping(url):
+def main_scraping(url: str) -> list[list[str]]:
+    """
+    Scrapes a given URL for specific table data related to 'MSS11'.
 
-    gesamte_vertretungen = []
-    response = requests.get(url)
-    html = response.content.decode('utf-8')
-    soup = BeautifulSoup(html, 'html.parser')
-    table = soup.find('table')
-    # Durch alle <tr>-Elemente der Tabelle iterieren
-    for row in table.find_all('tr'):
-        columns = row.find_all('td')
+    :param url: The URL to scrape data from.
+    :return: A list of lists containing the scraped table data.
+    """
+    soup = request_url(url)
 
-        # Überprüfen, ob das erste <td>-Element "MSS11" enthält
-        if columns and columns[0].get_text().strip() == 'MSS11':
-            logger.debug("MSS11 gefunden")
-            vertretung = []
+    total_replacements = []
+    try:
+        table = soup.find('table')
+        if not table:
+            raise ValueError("Table element not found in the HTML.")
 
-            # Den Inhalt des aktuellen <tr>-Elements speichern
-            for col in columns:
-                text = col.get_text().strip()
-                vertretung.append(text)
-            gesamte_vertretungen.append(vertretung)
+        for row in table.find_all('tr'):
+            columns = row.find_all('td')
+            if columns and columns[0].get_text().strip() == 'MSS11':
+                logger.debug("MSS11 found")
+                replacement = [col.get_text().strip() for col in columns]
+                total_replacements.append(replacement)
 
-            # Das nächste <tr>-Element durchlaufen
-            next_row = row.find_next_sibling('tr')
-            while next_row:
-                first_td = next_row.find("td")
-                if first_td and "\xa0" in str(first_td):
-                    logger.debug("Neue Zeile gefunden!")
-                    vertretung = []
-
-                    for col in next_row.find_all('td'):
-                        text = col.get_text().strip()
-                        vertretung.append(text)
-                    gesamte_vertretungen.append(vertretung)
-
-                    # Zum nächsten <tr>-Element übergehen
+                next_row = row.find_next_sibling('tr')
+                while next_row and "\xa0" in next_row.find("td").get_text():
+                    logger.debug("New row found!")
+                    replacement = [col.get_text().strip()
+                                   for col in next_row.find_all('td')]
+                    total_replacements.append(replacement)
                     next_row = next_row.find_next_sibling('tr')
-                else:
-                    logger.debug("Keine neue Zeile mit \xa0 gefunden")
-                    break
-    return gesamte_vertretungen
+    except Exception as e:
+        logger.error(f"Error processing HTML: {e}")
+        raise
+
+    return total_replacements
 
 
-def run_main_scraping(posts_dict):
-    scrape_dict = posts_dict.copy()
-    for key, val in scrape_dict.items():
-        # Main Scraping durchführen und Ergebnis in String konvertieren
-        ges = main_scraping(val)
-        scrape_dict[key] = str(ges)
-        logger.debug(ges)
-        # Eval verwenden, um den Wert in eine Liste umzuwandeln
-        converted_value = eval(scrape_dict[key])
-        scrape_dict[key] = converted_value
-        logger.info(f"{key}: scraped!")
+def run_main_scraping(posts_dict: dict[str, str]) -> dict[str, list[list[str]]]:
+    """
+    Executes the main_scraping function for each URL in the given dictionary and updates the dictionary with the results.
+
+    :param posts_dict: A dictionary mapping identifiers to URLs.
+    :return: A dictionary mapping identifiers to the results of the scraping process.
+    """
+    scrape_dict = {}
+    for key, url in posts_dict.items():
+        try:
+            scraped_data = main_scraping(url)
+            scrape_dict[key] = scraped_data
+            logger.info(f"{key}: scraped successfully!")
+        except Exception as e:
+            logger.error(f"Failed to scrape {url}: {e}")
+            scrape_dict[key] = []  # Assign an empty list in case of failure
+
     return scrape_dict
 
 
 def main():
-    baseUrl = prep_API_URL()
+    baseUrl = prepare_api_url(credentials)
     posts_dict = get_plans(baseUrl)
 
     scrape_dict = run_main_scraping(posts_dict)
-    print(f"{scrape_dict=}")
+    logger.debug(f"{json.dumps(scrape_dict, indent=2)}")
 
     with open("file.json", "w") as file:
         json.dump(scrape_dict, file)
+        logger.info("saved to file!")
 
 
 if __name__ == "__main__":
