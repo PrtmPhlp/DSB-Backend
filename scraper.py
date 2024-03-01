@@ -12,6 +12,7 @@ import yaml
 import requests
 from bs4 import BeautifulSoup
 from pydsb import PyDSB
+import json
 # ------------------------------------------------
 # ? Arguments
 parser = argparse.ArgumentParser()
@@ -44,9 +45,14 @@ with open('./secrets/secrets.yaml') as file:
 
 def prep_API_URL() -> str:
     logger.info("Sending API request")
-
-    dsb = PyDSB(credentials['dsb']['username'], credentials['dsb']['password'])
-    data = dsb.get_postings()
+    try:
+        # Your code that makes the request
+        dsb = PyDSB(credentials['dsb']['username'],
+                    credentials['dsb']['password'])
+        data = dsb.get_postings()
+        # Process the response
+    except Exception as e:
+        print("An error occurred:", e)
 
     for section in data:
         if section["title"] == "DaVinci Touch":
@@ -83,25 +89,85 @@ def get_plans(baseUrl: str) -> dict[str, str]:
             if weekday in text:
                 extracted_weekdays.append(weekday)
                 break  # Stoppe die Schleife, sobald ein Wochentag gefunden wurde
-
+    logger.info(f"Found following days: {extracted_weekdays}")
     posts_dict = {}
     for i in range(len(href_links)):
         logger.debug(f"Text list at {i+1} run: {text_list[i]}")
         logger.debug(f"href link at {i+1} run: {href_links[i]}")
-        posts_dict[extracted_weekdays[i]] = baseUrl + href_links[i]
+        posts_dict[str(i+1) + "_" + extracted_weekdays[i]
+                   ] = baseUrl + href_links[i]
         logger.debug(f"posts_dict at {i+1} run: {posts_dict}")
+
     return posts_dict
 
 
+def main_scraping(url):
+
+    gesamte_vertretungen = []
+    response = requests.get(url)
+    html = response.content.decode('utf-8')
+    soup = BeautifulSoup(html, 'html.parser')
+    table = soup.find('table')
+    # Durch alle <tr>-Elemente der Tabelle iterieren
+    for row in table.find_all('tr'):
+        columns = row.find_all('td')
+
+        # Überprüfen, ob das erste <td>-Element "MSS11" enthält
+        if columns and columns[0].get_text().strip() == 'MSS11':
+            logger.debug("MSS11 gefunden")
+            vertretung = []
+
+            # Den Inhalt des aktuellen <tr>-Elements speichern
+            for col in columns:
+                text = col.get_text().strip()
+                vertretung.append(text)
+            gesamte_vertretungen.append(vertretung)
+
+            # Das nächste <tr>-Element durchlaufen
+            next_row = row.find_next_sibling('tr')
+            while next_row:
+                first_td = next_row.find("td")
+                if first_td and "\xa0" in str(first_td):
+                    logger.debug("Neue Zeile gefunden!")
+                    vertretung = []
+
+                    for col in next_row.find_all('td'):
+                        text = col.get_text().strip()
+                        vertretung.append(text)
+                    gesamte_vertretungen.append(vertretung)
+
+                    # Zum nächsten <tr>-Element übergehen
+                    next_row = next_row.find_next_sibling('tr')
+                else:
+                    logger.debug("Keine neue Zeile mit \xa0 gefunden")
+                    break
+    return gesamte_vertretungen
 
 
+def run_main_scraping(posts_dict):
+    scrape_dict = posts_dict.copy()
+    for key, val in scrape_dict.items():
+        # Main Scraping durchführen und Ergebnis in String konvertieren
+        ges = main_scraping(val)
+        scrape_dict[key] = str(ges)
+        logger.debug(ges)
+        # Eval verwenden, um den Wert in eine Liste umzuwandeln
+        converted_value = eval(scrape_dict[key])
+        scrape_dict[key] = converted_value
+        logger.info(f"{key}: scraped!")
+    return scrape_dict
 
 
-
-
-
-if __name__ == "__main__":
+def main():
     baseUrl = prep_API_URL()
     posts_dict = get_plans(baseUrl)
 
-    logger.info(posts_dict)
+    scrape_dict = run_main_scraping(posts_dict)
+    print(f"{scrape_dict=}")
+
+    with open("file.json", "w") as file:
+        json.dump(scrape_dict, file)
+
+
+if __name__ == "__main__":
+    main()

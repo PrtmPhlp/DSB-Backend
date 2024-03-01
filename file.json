@@ -1,0 +1,20 @@
+{
+  "1_Montag": [
+    ["MSS11", "1.", "Meu", "KA-Aufsicht", "111", "Zusatzunterricht", ""],
+    ["", "", "Ha", "e4", "+109 (104)", "Raum\u00e4nderung", ""],
+    ["", "", "Mue", "KA-Aufsicht", "111", "Zusatzunterricht", ""],
+    ["", "2.", "(Kl)", "fr4", "009", "Selbststudium", ""],
+    ["", "", "Hc", "KA-Aufsicht", "111", "Zusatzunterricht", ""],
+    ["", "", "(Hc)", "GR1", "015", "Selbststudium", ""],
+    ["", "", "", "gr4", "015", "Selbststudium", ""]
+  ],
+  "2_Dienstag": [],
+  "3_Mittwoch": [
+    ["MSS11", "2.", "Shu", "KA-Aufsicht", "015", "Zusatzunterricht", ""],
+    ["", "", "Sa", "KA-Aufsicht", "154", "Zusatzunterricht", ""],
+    ["", "", "Hc", "KA-Aufsicht", "015", "Zusatzunterricht", ""],
+    ["", "3.", "Shu", "KA-Aufsicht", "015", "Zusatzunterricht", ""],
+    ["", "", "Sa", "KA-Aufsicht", "154", "Zusatzunterricht", ""]
+  ],
+  "4_Donnerstag": [["MSS11", "5.", "(Lo)", "kr4", "C1", "Selbststudium", ""]]
+}
