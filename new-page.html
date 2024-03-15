@@ -1,78 +1,121 @@
-<!DOCTYPE html>
+    <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JSON to HTML Table</title>
+    <title>Schedule Display</title>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
     <style>
+        /* Dark Mode styles */
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
+            background-color: #121212;
+            /* Dark background for the body */
+            color: #e0e0e0;
+            /* Lighter text for better readability */
+            font-family: 'Open Sans', sans-serif;
+            /* Modern font */
             margin: 0;
-            padding: 0;
+            padding: 20px;
+            line-height: 1.6;
         }
 
-        #myTable {
+        .container {
+            max-width: 1200px;
+            margin: auto;
+            padding: 20px;
+            background: #242424;
+            /* Darker background for the content area */
+            box-shadow: 0 2px 5px rgba(255, 255, 255, 0.1);
+            /* Subtle white shadow for depth */
+            border-radius: 8px;
+            /* Rounded corners */
+        }
+
+        h1 {
+            color: #1e90ff;
+            /* Bright blue for headings, ensuring good contrast */
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
+            margin-bottom: 20px;
         }
 
-        #myTable th,
-        #myTable td {
-            padding: 8px;
+        th,
+        td {
+            padding: 12px;
             text-align: left;
-            border-bottom: 1px solid #ddd;
+            border-bottom: 1px solid #333;
+            /* Darker border for a subtle look */
         }
 
-        #myTable th {
-            background-color: #f2f2f2;
+        th {
+            background-color: #1e90ff;
+            /* Bright blue for table headers */
+            color: #ffffff;
+            font-weight: 600;
         }
 
-        #myTable tbody tr:hover {
-            background-color: #e0e0e0;
+        tr:nth-child(even) {
+            background-color: #1c1c1c;
+            /* Slightly lighter for zebra striping */
+        }
+
+        tr:hover {
+            background-color: #2e2e2e;
+            /* Hover effect with a slightly lighter shade */
+        }
+
+        td:last-child {
+            border-bottom: 0;
         }
     </style>
 </head>
 
 <body>
-    <table id="myTable" border="1">
-        <thead>
-            <tr>
-                <th>Klasse</th>
-                <th>Pos</th>
-                <th>Lehrer</th>
-                <th>Fach</th>
-                <th>Raum</th>
-                <th>Art</th>
-                <th>Info</th>
-            </tr>
-        </thead>
-        <tbody>
-            <!-- Table body will be dynamically populated -->
-        </tbody>
-    </table>
-
+    <div class="container">
+        <h1>Schedule for 1_Montag</h1>
+        <table id="scheduleTable">
+            <thead>
+                <tr>
+                    <th>Klasse</th>
+                    <th>Pos</th>
+                    <th>Lehrer</th>
+                    <th>Fach</th>
+                    <th>Raum</th>
+                    <th>Art</th>
+                    <th>Info</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- JavaScript will populate table rows here -->
+            </tbody>
+        </table>
+    </div>
     <script>
-        fetch('file.json')
-            .then(response => response.json())
-            .then(data => {
-                const tableBody = document.querySelector('#myTable tbody');
-                // Get the first key from the JSON object
-                const firstKey = Object.keys(data)[0];
-                // Iterate over the list associated with the first key
-                data[firstKey].forEach(rowData => {
-                    const row = document.createElement('tr');
-                    rowData.forEach(cellData => {
-                        const cell = document.createElement('td');
-                        cell.textContent = cellData;
-                        row.appendChild(cell);
+        // script.js
+        document.addEventListener('DOMContentLoaded', function () {
+            fetch('file.json')
+                .then(response => response.json())
+                .then(data => {
+                    const tableBody = document.getElementById('scheduleTable').getElementsByTagName('tbody')[0];
+                    data["1_Montag"].forEach(rowData => {
+                        let row = document.createElement('tr');
+                        rowData.forEach(cellData => {
+                            let cell = document.createElement('td');
+                            cell.appendChild(document.createTextNode(cellData === "" ? "—" : cellData)); // Replace empty strings with a dash for aesthetics
+                            row.appendChild(cell);
+                        });
+                        tableBody.appendChild(row);
                     });
-                    tableBody.appendChild(row);
-                });
-            })
-            .catch(error => console.error('Error fetching JSON:', error));
+                })
+                .catch(error => console.error('Error loading the schedule data:', error));
+        });
+
     </script>
 </body>
 

@@ -3,8 +3,7 @@
 # ! Imports
 
 # ? Logging and Argsparse
-from urllib.parse import urljoin, urlparse
-from operator import index
+from urllib.parse import urljoin
 import coloredlogs
 import logging
 import argparse
@@ -54,14 +53,20 @@ def prepare_api_url(credentials: dict) -> str:
     :return: The base URL for "DaVinci Touch" section if found.
     :raises KeyError: If a required credential is missing.
     :raises Exception: For other unforeseen errors.
+    :raises ValueError: If the "DaVinci Touch" section is not found.
     """
     logger.info("Sending API request")
     try:
         dsb = PyDSB(credentials['dsb']['username'],
                     credentials['dsb']['password'])
         data = dsb.get_postings()
-    except Exception as e:
-        logger.error("An unexpected error occurred: %s", e)
+    except requests.ConnectionError as e:
+        # print("Exception occurred: ", e)
+        # print("Possibly no internet connection.")
+        logger.critical(
+            "No Internet Connection")
+    # except Exception as e:
+    #     logger.error("An unexpected error occurred: %s", e)
         raise
 
     for section in data:
@@ -69,10 +74,9 @@ def prepare_api_url(credentials: dict) -> str:
             base_url = section["url"]
             logger.debug("URL for DaVinci Touch: %s", base_url)
             return base_url
-        else:
-            raise ValueError("DaVinci Touch section not found.")
 
-# ? Get all representation plans from baseUrl and save in "posts_dict"
+    # This line is reached if no section titled "DaVinci Touch" is found
+    raise ValueError("DaVinci Touch section not found.")
 
 
 def request_url(url: str) -> BeautifulSoup:
