@@ -49,7 +49,7 @@ def prepare_api_url(credentials: dict) -> str:
     """
     Prepares the API URL for the "DaVinci Touch" section from the given credentials.
 
-    :param credentials: A dictionary containing 'username' and 'password' keys for authentication.
+    :param credentials: Dictionary containing 'username' and 'password' for auth.
     :return: The base URL for "DaVinci Touch" section if found.
     :raises KeyError: If a required credential is missing.
     :raises Exception: For other unforeseen errors.
@@ -61,8 +61,7 @@ def prepare_api_url(credentials: dict) -> str:
                     credentials['dsb']['password'])
         data = dsb.get_postings()
     except requests.ConnectionError as e:
-        # print("Exception occurred: ", e)
-        # print("Possibly no internet connection.")
+        print("Exception occurred: ", e)
         logger.critical(
             "No Internet Connection")
     # except Exception as e:
@@ -142,7 +141,7 @@ def get_plans(base_url: str) -> dict[str, str]:
     return posts_dict
 
 
-def main_scraping(url: str) -> list[list[str]]:
+def main_scraping(url: str) -> tuple[list[list[str]], bool]:
     """
     Scrapes a given URL for specific table data related to 'MSS11'.
 
@@ -150,8 +149,10 @@ def main_scraping(url: str) -> list[list[str]]:
     :return: A list of lists containing the scraped table data.
     """
     soup = request_url(url)
+    success = False
 
     total_replacements = []
+
     try:
         table = soup.find('table')
         if not table:
@@ -160,6 +161,7 @@ def main_scraping(url: str) -> list[list[str]]:
         for row in table.find_all('tr'):  # type: ignore
             columns = row.find_all('td')
             if columns and columns[0].get_text().strip() == 'MSS11':
+                success = True
                 logger.debug("MSS11 found")
                 replacement = [col.get_text().strip() for col in columns]
                 total_replacements.append(replacement)
@@ -174,8 +176,8 @@ def main_scraping(url: str) -> list[list[str]]:
     except Exception as e:
         logger.error(f"Error processing HTML: {e}")
         raise
-
-    return total_replacements
+    logger.debug(f"Success Status: {success}")
+    return total_replacements, success
 
 
 def run_main_scraping(posts_dict: dict[str, str]) -> dict[str, list[list[str]]]:
@@ -188,9 +190,12 @@ def run_main_scraping(posts_dict: dict[str, str]) -> dict[str, list[list[str]]]:
     scrape_dict = {}
     for key, url in posts_dict.items():
         try:
-            scraped_data = main_scraping(url)
+            scraped_data, success = main_scraping(url)
             scrape_dict[key] = scraped_data
-            logger.info(f"{key}: scraped successfully!")
+            if success:
+                logger.info(f"{key}: scraped successfully!")
+            else:
+                logger.warning(f"{key}: class not found!")
         except Exception as e:
             logger.error(f"Failed to scrape {url}: {e}")
             scrape_dict[key] = []  # Assign an empty list in case of failure
