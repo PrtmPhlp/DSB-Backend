@@ -112,7 +112,9 @@ def get_plans(base_url: str) -> dict[str, str]:
     soup = request_url(base_url)
 
     try:
-        links = soup.find('ul', class_='day-index').find_all('a')
+        links = soup.find(
+            'ul', class_='day-index').find_all('a')  # type: ignore
+
     except AttributeError as e:
         logger.error(f"Error parsing HTML structure: {e}")
         raise ValueError("Expected HTML structure not found.")
@@ -155,7 +157,7 @@ def main_scraping(url: str) -> list[list[str]]:
         if not table:
             raise ValueError("Table element not found in the HTML.")
 
-        for row in table.find_all('tr'):
+        for row in table.find_all('tr'):  # type: ignore
             columns = row.find_all('td')
             if columns and columns[0].get_text().strip() == 'MSS11':
                 logger.debug("MSS11 found")
@@ -201,10 +203,11 @@ def main():
     posts_dict = get_plans(baseUrl)
 
     scrape_dict = run_main_scraping(posts_dict)
-    logger.debug(f"{json.dumps(scrape_dict, indent=2)}")
+    logger.debug(
+        f"{json.dumps(scrape_dict, indent=2, ensure_ascii=False).encode("utf8").decode("utf8")}")
 
-    with open("file.json", "w") as file:
-        json.dump(scrape_dict, file)
+    with open("file.json", "w", encoding="utf8") as file:
+        json.dump(scrape_dict, file, ensure_ascii=False)
         logger.info("saved to file!")
 
 
