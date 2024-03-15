@@ -4,3 +4,4 @@ secrets/*
 .DS_Store
 testing.py
 file.json
+.venv/*
