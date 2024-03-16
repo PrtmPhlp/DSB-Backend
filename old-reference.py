@@ -3,6 +3,7 @@ import requests
 import json
 from bs4 import BeautifulSoup
 from termcolor import colored
+import yaml
 import re
 from datetime import datetime
 import argparse
@@ -43,9 +44,13 @@ def prep_check_internet():
 
 # ? Use PyDSB and gather URLs
 def prep_API_URL():
+    # ? load dsb credentials from secrets
+    with open('./secrets/secrets.yaml') as file:
+        credentials = yaml.safe_load(file)
     print(colored("Info: Sending API request", 'yellow', attrs=['bold']))
 
-    dsb = PyDSB("274583", "johann")
+    dsb = PyDSB(credentials['dsb']['username'],
+                credentials['dsb']['password'])
     global data
     data = dsb.get_postings()
 

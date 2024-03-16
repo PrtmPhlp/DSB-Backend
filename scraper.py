@@ -199,11 +199,10 @@ def run_main_scraping(posts_dict: dict[str, str]) -> dict[str, list[list[str]]]:
         except Exception as e:
             logger.error(f"Failed to scrape {url}: {e}")
             scrape_dict[key] = []  # Assign an empty list in case of failure
-
     return scrape_dict
 
 
-def main():
+def main() -> None:
     baseUrl = prepare_api_url(credentials)
     posts_dict = get_plans(baseUrl)
 
