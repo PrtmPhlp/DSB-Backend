@@ -2,18 +2,15 @@
 # ------------------------------------------------
 # ! Imports
 
-# ? Logging and Argsparse
 from urllib.parse import urljoin
-import coloredlogs
 import logging
 import argparse
+import json
+import coloredlogs
 import yaml
-
-# ? Scraping
 import requests
 from bs4 import BeautifulSoup
 from pydsb import PyDSB
-import json
 
 # ------------------------------------------------
 # ? Arguments
@@ -40,8 +37,8 @@ coloredlogs.install(fmt="%(asctime)s - %(levelname)s - \033[94m%(message)s\033[0
                     datefmt="%H:%M:%S", level=logging_level)
 
 # ? load dsb credentials from secrets
-with open('./secrets/secrets.yaml') as file:
-    credentials = yaml.safe_load(file)
+with open('./secrets/secrets.yaml', encoding="utf-8") as file:
+    secret_credentials = yaml.safe_load(file)
 # ------------------------------------------------
 
 
@@ -88,11 +85,11 @@ def request_url(url: str) -> BeautifulSoup:
            invalid URLs, or HTTP errors.
     """
     try:
-        response = requests.get(url)
+        response = requests.get(url, timeout=10)
         response.raise_for_status()  # Raises HTTPError for bad responses
     except requests.exceptions.RequestException as e:
         # Uncomment the logger statement if logging is desired.
-        # logger.error(f"Failed to fetch data from {url}: {e}")
+        logger.error("%s", f"Failed to fetch data from {url}: {e}")
         raise
 
     html = response.content.decode('utf-8')
@@ -115,8 +112,9 @@ def get_plans(base_url: str) -> dict[str, str]:
             'ul', class_='day-index').find_all('a')  # type: ignore
 
     except AttributeError as e:
-        logger.error(f"Error parsing HTML structure: {e}")
-        raise ValueError("Expected HTML structure not found.")
+        logger.error("%s", f"Error parsing HTML structure: {e}")
+        raise ValueError(  # pylint: disable=raise-missing-from
+            "Expected HTML structure not found.")
 
     logger.debug("<a> links in <ul>, found by soup: %s", links)
 
@@ -136,7 +134,7 @@ def get_plans(base_url: str) -> dict[str, str]:
         if weekday:  # Only include entries with a valid weekday
             full_url = urljoin(base_url, href)
             posts_dict[f"{i+1}_{weekday}"] = full_url
-            logger.debug(f"Added {weekday} to posts_dict: {full_url}")
+            logger.debug("%s", f"Added {weekday} to posts_dict: {full_url}")
 
     return posts_dict
 
@@ -174,9 +172,9 @@ def main_scraping(url: str) -> tuple[list[list[str]], bool]:
                     total_replacements.append(replacement)
                     next_row = next_row.find_next_sibling('tr')
     except Exception as e:
-        logger.error(f"Error processing HTML: {e}")
+        logger.error("%s", f"Error processing HTML: {e}")
         raise
-    logger.debug(f"Success Status: {success}")
+    logger.debug("%s", f"Success Status: {success}")
     return total_replacements, success
 
 
@@ -193,25 +191,28 @@ def run_main_scraping(posts_dict: dict[str, str]) -> dict[str, list[list[str]]]:
             scraped_data, success = main_scraping(url)
             scrape_dict[key] = scraped_data
             if success:
-                logger.info(f"{key}: scraped successfully!")
+                logger.info("%s", f"{key}: scraped successfully!")
             else:
-                logger.warning(f"{key}: class not found!")
-        except Exception as e:
-            logger.error(f"Failed to scrape {url}: {e}")
+                logger.warning("%s", f"{key}: class not found!")
+        except Exception as e:  # pylint: disable=W0718
+            logger.error("%s", f"Failed to scrape {url}: {e}")
             scrape_dict[key] = []  # Assign an empty list in case of failure
     return scrape_dict
 
 
 def main() -> None:
-    baseUrl = prepare_api_url(credentials)
+    baseUrl = prepare_api_url(secret_credentials)
     posts_dict = get_plans(baseUrl)
 
     scrape_dict = run_main_scraping(posts_dict)
     logger.debug(
-        f"{json.dumps(scrape_dict, indent=2, ensure_ascii=False).encode("utf8").decode("utf8")}")
+        "%s",
+        json.dumps(scrape_dict, indent=2, ensure_ascii=False).encode(
+            "utf8").decode("utf8")
+    )
 
-    with open("file.json", "w", encoding="utf8") as file:
-        json.dump(scrape_dict, file, ensure_ascii=False)
+    with open("file.json", "w", encoding="utf8") as file_json:
+        json.dump(scrape_dict, file_json, ensure_ascii=False)
         logger.info("saved to file!")
 
 
