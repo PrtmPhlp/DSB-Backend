@@ -1,4 +1,4 @@
-This project is dedicated to fetching already existent representation plans, processing them further with sorting mechanisms and abbreviation replacements and visualizing them on a outsourced Next / Static Website. This Project is highly personalized to the Website system [DSBMobile](https://www.dsbmobile.de/) and Layout scheme [DAVINCI](https://davinci.stueber.de/) by [Stübner Systems](https://www.stueber.de/)
+This project is dedicated to fetching already existent representation plans, processing them further with sorting mechanisms and abbreviation replacements and visualizing them on a outsourced Next.js / Static Website. This Project is highly personalized to the Website system [DSBMobile](https://www.dsbmobile.de/) and Layout scheme [DAVINCI](https://davinci.stueber.de/) by [Stübner Systems](https://www.stueber.de/)
 The following process should be achieved:
 
 1. Auth through API
