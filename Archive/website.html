@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- <link rel="stylesheet" href="/Website/style/website.css"> -->
+    <title>Vertretungsplan</title>
+    <style>
+        body {
+            margin: 2rem;
+            font-family: 'Roboto', Arial, Helvetica, sans-serif;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 2.5rem;
+        }
+
+        th, td {
+            border: 2.5px solid black;
+            padding: 20px;
+            text-align: left;
+        }
+
+        /* Responsive CSS */
+        @media screen and (max-width: 768px) {
+            th, td {
+                padding: 10px;
+                font-size: 1.8rem;
+            }
+        }
+
+        /* Additional styles for smaller screens if needed */
+        /* @media screen and (max-width: 480px) {
+            Additional CSS for smaller screens
+        } */
+    </style>
+</head>
+
+<body>
+    <div class="table-container">
+        <table id="vertretungsplan">
+            <thead>
+                <tr>
+                    <th>Stunde</th>
+                    <th>Lehrer</th>
+                    <th>Kurs</th>
+                    <th>Raum</th>
+                    <th>Hinweis</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+    </div>
+
+    <script>
+        fetch('ausgeschrieben.json')
+        .then(response => response.json())
+        .then(data => {
+            const tableBody = document.getElementById('tableBody');
+
+            if (Array.isArray(data) && data.length === 1 && data[0] === "Keine Vertretungen verfügbar!") {
+                tableBody.innerHTML = '<tr><td colspan="5">' + data[0] + '</td></tr>';
+            } else {
+                for (let item of data) {
+                    if (item === 'Zeile') {
+                        continue;  // Skip 'Zeile' entries
+                    } else {
+                        const row = '<tr><td>' + item.join('</td><td>') + '</td></tr>';
+                        tableBody.innerHTML += row;
+                    }
+                }
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    </script>
+</body>
+
+</html>
