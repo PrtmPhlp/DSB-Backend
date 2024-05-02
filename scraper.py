@@ -1,5 +1,14 @@
 #!/usr/bin/env python3
 # ------------------------------------------------
+"""
+This script scrapes data from dsbmobile.com to retrieve class replacements.
+The scraped data is then organized and saved to a JSON file.
+
+__author__ = "PrtmPhlp"
+__Contact__ = "contact@pertermann.de"
+__Status__ = "Development"
+"""
+# ------------------------------------------------
 # ! Imports
 
 from urllib.parse import urljoin
@@ -24,17 +33,17 @@ logger = logging.getLogger(__name__)
 
 # Determine logging level based on args.verbose
 if args.verbose == 0:
-    logging_level = logging.CRITICAL
+    LOGGING_LEVEL = logging.CRITICAL
 elif args.verbose == 2:
-    logging_level = logging.DEBUG
+    LOGGING_LEVEL = logging.DEBUG
     # prevent requests (urllib3) logging:
     logging.getLogger("urllib3").setLevel(logging.WARNING)
 else:
-    logging_level = logging.INFO
+    LOGGING_LEVEL = logging.INFO
 
-logger.setLevel(logging_level)
+logger.setLevel(LOGGING_LEVEL)
 coloredlogs.install(fmt="%(asctime)s - %(levelname)s - \033[94m%(message)s\033[0m",
-                    datefmt="%H:%M:%S", level=logging_level)
+                    datefmt="%H:%M:%S", level=LOGGING_LEVEL)
 
 # ? load dsb credentials from secrets
 with open('./secrets/secrets.yaml', encoding="utf-8") as file:
@@ -77,12 +86,13 @@ def prepare_api_url(credentials: dict) -> str:
 
 def request_url(url: str) -> BeautifulSoup:
     """
-    Sends a GET request to the specified URL and returns a BeautifulSoup object parsed from the HTML response.
+    Sends a GET request to the specified URL and returns a BeautifulSoup object parsed from the
+    HTML response.
 
     :param url: The URL to send the request to.
     :return: A BeautifulSoup object of the parsed HTML document.
-    :raises requests.exceptions.RequestException: If the request fails for any reason, including network issues,
-           invalid URLs, or HTTP errors.
+    :raises requests.exceptions.RequestException: If the request fails for any reason, including
+    network issues, invalid URLs, or HTTP errors.
     """
     try:
         response = requests.get(url, timeout=10)
@@ -113,8 +123,7 @@ def get_plans(base_url: str) -> dict[str, str]:
 
     except AttributeError as e:
         logger.error("%s", f"Error parsing HTML structure: {e}")
-        raise ValueError(  # pylint: disable=raise-missing-from
-            "Expected HTML structure not found.")
+        raise ValueError("Expected HTML structure not found.") from e
 
     logger.debug("<a> links in <ul>, found by soup: %s", links)
 
@@ -180,7 +189,8 @@ def main_scraping(url: str) -> tuple[list[list[str]], bool]:
 
 def run_main_scraping(posts_dict: dict[str, str]) -> dict[str, list[list[str]]]:
     """
-    Executes the main_scraping function for each URL in the given dictionary and updates the dictionary with the results.
+    Executes the main_scraping function for each URL in the given dictionary and updates the 
+    dictionary with the results.
 
     :param posts_dict: A dictionary mapping identifiers to URLs.
     :return: A dictionary mapping identifiers to the results of the scraping process.
@@ -201,8 +211,15 @@ def run_main_scraping(posts_dict: dict[str, str]) -> dict[str, list[list[str]]]:
 
 
 def main() -> None:
-    baseUrl = prepare_api_url(secret_credentials)
-    posts_dict = get_plans(baseUrl)
+    """
+    Main function that orchestrates the scraping process.
+
+    Retrieves API URL using secret credentials, fetches plans from the API,
+    runs the main scraping process on the fetched data, logs the results,
+    and saves the scraped data to a JSON file.
+    """
+    base_url = prepare_api_url(secret_credentials)
+    posts_dict = get_plans(base_url)
 
     scrape_dict = run_main_scraping(posts_dict)
     logger.debug(
