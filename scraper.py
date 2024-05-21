@@ -15,12 +15,11 @@ from urllib.parse import urljoin
 import logging
 import argparse
 import json
+from dotenv import dotenv_values
 import coloredlogs
-import yaml
 import requests
 from bs4 import BeautifulSoup
 from pydsb import PyDSB
-
 # ------------------------------------------------
 # ? Arguments
 parser = argparse.ArgumentParser()
@@ -47,10 +46,6 @@ coloredlogs.install(
     datefmt="%H:%M:%S",
     level=LOGGING_LEVEL,
 )
-
-# ? load dsb credentials from secrets
-with open("./secrets/secrets.yaml", encoding="utf-8") as file:
-    secret_credentials = yaml.safe_load(file)
 # ------------------------------------------------
 
 
@@ -66,7 +61,8 @@ def prepare_api_url(credentials: dict) -> str:
     """
     logger.info("Sending API request")
     try:
-        dsb = PyDSB(credentials["dsb"]["username"], credentials["dsb"]["password"])
+        dsb = PyDSB(credentials["DSB_USERNAME"],
+                    credentials["DSB_PASSWORD"])
         data = dsb.get_postings()
     except requests.ConnectionError as e:
         print("Exception occurred: ", e)
@@ -119,7 +115,8 @@ def get_plans(base_url: str) -> dict[str, str]:
     soup = request_url(base_url)
 
     try:
-        links = soup.find("ul", class_="day-index").find_all("a")  # type: ignore
+        links = soup.find(
+            "ul", class_="day-index").find_all("a")  # type: ignore
 
     except AttributeError as e:
         logger.error("%s", f"Error parsing HTML structure: {e}")
@@ -228,7 +225,9 @@ def main() -> None:
     runs the main scraping process on the fetched data, logs the results,
     and saves the scraped data to a JSON file.
     """
-    base_url = prepare_api_url(secret_credentials)
+    env_credentials = dotenv_values(".env")
+    logger.debug("%s", f"{env_credentials=}")
+    base_url = prepare_api_url(env_credentials)
     posts_dict = get_plans(base_url)
 
     scrape_dict = run_main_scraping(posts_dict)
