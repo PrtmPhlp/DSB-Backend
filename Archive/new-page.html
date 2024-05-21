@@ -1,4 +1,4 @@
-    <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -10,11 +10,8 @@
         /* Dark Mode styles */
         body {
             background-color: #121212;
-            /* Dark background for the body */
             color: #e0e0e0;
-            /* Lighter text for better readability */
             font-family: 'Open Sans', sans-serif;
-            /* Modern font */
             margin: 0;
             padding: 20px;
             line-height: 1.6;
@@ -25,16 +22,12 @@
             margin: auto;
             padding: 20px;
             background: #242424;
-            /* Darker background for the content area */
             box-shadow: 0 2px 5px rgba(255, 255, 255, 0.1);
-            /* Subtle white shadow for depth */
             border-radius: 8px;
-            /* Rounded corners */
         }
 
         h1 {
             color: #1e90ff;
-            /* Bright blue for headings, ensuring good contrast */
             text-align: center;
             margin-bottom: 40px;
         }
@@ -45,40 +38,48 @@
             margin-bottom: 20px;
         }
 
-        th,
-        td {
+        th, td {
             padding: 12px;
             text-align: left;
             border-bottom: 1px solid #333;
-            /* Darker border for a subtle look */
         }
 
         th {
             background-color: #1e90ff;
-            /* Bright blue for table headers */
             color: #ffffff;
             font-weight: 600;
         }
 
         tr:nth-child(even) {
             background-color: #1c1c1c;
-            /* Slightly lighter for zebra striping */
         }
 
         tr:hover {
             background-color: #2e2e2e;
-            /* Hover effect with a slightly lighter shade */
         }
 
         td:last-child {
             border-bottom: 0;
+        }
+
+        .day-button {
+            padding: 10px 20px;
+            margin: 10px;
+            cursor: pointer;
+            background-color: #1e90ff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-family: 'Open Sans', sans-serif;
         }
     </style>
 </head>
 
 <body>
     <div class="container">
-        <h1>Schedule for 1_Montag</h1>
+        <h1 id="scheduleTitle">Schedule</h1>
+        <button class="day-button" onclick="loadSchedule('1_Donnerstag')">Donnerstag</button>
+        <button class="day-button" onclick="loadSchedule('2_Freitag')">Freitag</button>
         <table id="scheduleTable">
             <thead>
                 <tr>
@@ -97,25 +98,31 @@
         </table>
     </div>
     <script>
-        // script.js
         document.addEventListener('DOMContentLoaded', function () {
+            // Default load for the first available schedule
+            loadSchedule('1_Donnerstag');
+        });
+
+        function loadSchedule(day) {
             fetch('file.json')
                 .then(response => response.json())
                 .then(data => {
+                    const scheduleTitle = document.getElementById('scheduleTitle');
+                    scheduleTitle.textContent = `Schedule for ${day}`;
                     const tableBody = document.getElementById('scheduleTable').getElementsByTagName('tbody')[0];
-                    data["1_Montag"].forEach(rowData => {
+                    tableBody.innerHTML = ''; // Clear existing table data
+                    data[day].forEach(rowData => {
                         let row = document.createElement('tr');
                         rowData.forEach(cellData => {
                             let cell = document.createElement('td');
-                            cell.appendChild(document.createTextNode(cellData === "" ? "—" : cellData)); // Replace empty strings with a dash for aesthetics
+                            cell.textContent = cellData === "" ? "" : cellData; // Replace empty strings with a dash
                             row.appendChild(cell);
                         });
                         tableBody.appendChild(row);
                     });
                 })
                 .catch(error => console.error('Error loading the schedule data:', error));
-        });
-
+        }
     </script>
 </body>
 
