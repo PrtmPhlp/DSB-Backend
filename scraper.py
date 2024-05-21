@@ -25,7 +25,7 @@ from pydsb import PyDSB
 # ? Arguments
 parser = argparse.ArgumentParser()
 # parser.add_argument("day", type=int, nargs='?', help="Tag für den Vertretungsplan, z.B.: 4")
-parser.add_argument('verbose', type=int, nargs='?', default='1')
+parser.add_argument("verbose", type=int, nargs="?", default="1")
 args = parser.parse_args()
 
 # ? Logging
@@ -42,11 +42,14 @@ else:
     LOGGING_LEVEL = logging.INFO
 
 logger.setLevel(LOGGING_LEVEL)
-coloredlogs.install(fmt="%(asctime)s - %(levelname)s - \033[94m%(message)s\033[0m",
-                    datefmt="%H:%M:%S", level=LOGGING_LEVEL)
+coloredlogs.install(
+    fmt="%(asctime)s - %(levelname)s - \033[94m%(message)s\033[0m",
+    datefmt="%H:%M:%S",
+    level=LOGGING_LEVEL,
+)
 
 # ? load dsb credentials from secrets
-with open('./secrets/secrets.yaml', encoding="utf-8") as file:
+with open("./secrets/secrets.yaml", encoding="utf-8") as file:
     secret_credentials = yaml.safe_load(file)
 # ------------------------------------------------
 
@@ -63,15 +66,13 @@ def prepare_api_url(credentials: dict) -> str:
     """
     logger.info("Sending API request")
     try:
-        dsb = PyDSB(credentials['dsb']['username'],
-                    credentials['dsb']['password'])
+        dsb = PyDSB(credentials["dsb"]["username"], credentials["dsb"]["password"])
         data = dsb.get_postings()
     except requests.ConnectionError as e:
         print("Exception occurred: ", e)
-        logger.critical(
-            "No Internet Connection")
-    # except Exception as e:
-    #     logger.error("An unexpected error occurred: %s", e)
+        logger.critical("No Internet Connection")
+        # except Exception as e:
+        #     logger.error("An unexpected error occurred: %s", e)
         raise
 
     for section in data:
@@ -102,8 +103,8 @@ def request_url(url: str) -> BeautifulSoup:
         logger.error("%s", f"Failed to fetch data from {url}: {e}")
         raise
 
-    html = response.content.decode('utf-8')
-    soup = BeautifulSoup(html, 'html.parser')
+    html = response.content.decode("utf-8")
+    soup = BeautifulSoup(html, "html.parser")
     return soup
 
 
@@ -118,8 +119,7 @@ def get_plans(base_url: str) -> dict[str, str]:
     soup = request_url(base_url)
 
     try:
-        links = soup.find(
-            'ul', class_='day-index').find_all('a')  # type: ignore
+        links = soup.find("ul", class_="day-index").find_all("a")  # type: ignore
 
     except AttributeError as e:
         logger.error("%s", f"Error parsing HTML structure: {e}")
@@ -128,14 +128,23 @@ def get_plans(base_url: str) -> dict[str, str]:
     logger.debug("<a> links in <ul>, found by soup: %s", links)
 
     # Extract href attributes and link text
-    href_links = [link.get('href') for link in links]
+    href_links = [link.get("href") for link in links]
     text_list = [link.text for link in links]
 
-    weekdays = ["Montag", "Dienstag", "Mittwoch",
-                "Donnerstag", "Freitag", "Samstag", "Sonntag"]
+    weekdays = [
+        "Montag",
+        "Dienstag",
+        "Mittwoch",
+        "Donnerstag",
+        "Freitag",
+        "Samstag",
+        "Sonntag",
+    ]
     # Extract weekdays from text_list
-    extracted_weekdays = [next(
-        (weekday for weekday in weekdays if weekday in text), None) for text in text_list]
+    extracted_weekdays = [
+        next((weekday for weekday in weekdays if weekday in text), None)
+        for text in text_list
+    ]
 
     # Construct posts dictionary
     posts_dict = {}
@@ -161,25 +170,26 @@ def main_scraping(url: str) -> tuple[list[list[str]], bool]:
     total_replacements = []
 
     try:
-        table = soup.find('table')
+        table = soup.find("table")
         if not table:
             raise ValueError("Table element not found in the HTML.")
 
-        for row in table.find_all('tr'):  # type: ignore
-            columns = row.find_all('td')
-            if columns and columns[0].get_text().strip() == 'MSS11':
+        for row in table.find_all("tr"):  # type: ignore
+            columns = row.find_all("td")
+            if columns and columns[0].get_text().strip() == "MSS11":
                 success = True
                 logger.debug("MSS11 found")
                 replacement = [col.get_text().strip() for col in columns]
                 total_replacements.append(replacement)
 
-                next_row = row.find_next_sibling('tr')
+                next_row = row.find_next_sibling("tr")
                 while next_row and "\xa0" in next_row.find("td").get_text():
                     logger.debug("New row found!")
-                    replacement = [col.get_text().strip()
-                                   for col in next_row.find_all('td')]
+                    replacement = [
+                        col.get_text().strip() for col in next_row.find_all("td")
+                    ]
                     total_replacements.append(replacement)
-                    next_row = next_row.find_next_sibling('tr')
+                    next_row = next_row.find_next_sibling("tr")
     except Exception as e:
         logger.error("%s", f"Error processing HTML: {e}")
         raise
@@ -189,7 +199,7 @@ def main_scraping(url: str) -> tuple[list[list[str]], bool]:
 
 def run_main_scraping(posts_dict: dict[str, str]) -> dict[str, list[list[str]]]:
     """
-    Executes the main_scraping function for each URL in the given dictionary and updates the 
+    Executes the main_scraping function for each URL in the given dictionary and updates the
     dictionary with the results.
 
     :param posts_dict: A dictionary mapping identifiers to URLs.
@@ -224,13 +234,14 @@ def main() -> None:
     scrape_dict = run_main_scraping(posts_dict)
     logger.debug(
         "%s",
-        json.dumps(scrape_dict, indent=2, ensure_ascii=False).encode(
-            "utf8").decode("utf8")
+        json.dumps(scrape_dict, indent=2, ensure_ascii=False)
+        .encode("utf8")
+        .decode("utf8"),
     )
 
     with open("file.json", "w", encoding="utf8") as file_json:
         json.dump(scrape_dict, file_json, ensure_ascii=False)
-        logger.info("saved to file!")
+        logger.info("saved to 'file.json'")
 
 
 if __name__ == "__main__":
