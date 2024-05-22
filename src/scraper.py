@@ -76,11 +76,14 @@ def load_env_credentials() -> dict:
         logger.error("The .env file does not exist", exc_info=True)
         raise FileNotFoundError("The .env file does not exist") from fnf_error
     except ValueError as ve:
-        logger.error("%s", f"Failed to load environment variables: {ve}", exc_info=True)  # nopep8
+        logger.error(
+            "%s", f"Failed to load environment variables: {ve}", exc_info=True
+        )  # nopep8
         raise ValueError(f"Failed to load environment variables: {ve}") from ve
     except Exception as e:
-        logger.error("%s", f"An error occurred while loading the .env file: {e}",
-                     exc_info=True)  # nopep8
+        logger.error(
+            "%s", f"An error occurred while loading the .env file: {e}", exc_info=True
+        )  # nopep8
         raise ValueError(
             f"An error occurred while loading the .env file: {e}") from e
 
