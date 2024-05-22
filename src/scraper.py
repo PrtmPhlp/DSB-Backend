@@ -20,6 +20,7 @@ import coloredlogs
 import requests
 from bs4 import BeautifulSoup
 from pydsb import PyDSB
+
 # ------------------------------------------------
 # ? Arguments
 parser = argparse.ArgumentParser()
@@ -48,6 +49,7 @@ coloredlogs.install(
 )
 # ------------------------------------------------
 
+
 def load_env_credentials() -> dict:
     """
     Load environment credentials from a .env file.
@@ -62,9 +64,13 @@ def load_env_credentials() -> dict:
         if not env_credentials:
             raise ValueError(
                 "Failed to load environment variables from .env file")
-        if 'DSB_USERNAME' not in env_credentials or 'DSB_PASSWORD' not in env_credentials:
+        if (
+            "DSB_USERNAME" not in env_credentials
+            or "DSB_PASSWORD" not in env_credentials
+        ):
             raise ValueError(
-                "DSB_USERNAME and DSB_PASSWORD must be set in the .env file")
+                "DSB_USERNAME and DSB_PASSWORD must be set in the .env file"
+            )
         return env_credentials
     except FileNotFoundError as fnf_error:
         logger.error("The .env file does not exist", exc_info=True)
@@ -74,8 +80,9 @@ def load_env_credentials() -> dict:
                      ve}", exc_info=True)
         raise ValueError(f"Failed to load environment variables: {ve}") from ve
     except Exception as e:
-        logger.error("%s", f"An error occurred while loading the .env file: {
-                     e}", exc_info=True)
+        logger.error(
+            "%s", f"An error occurred while loading the .env file: {e}", exc_info=True
+        )
         raise ValueError(
             f"An error occurred while loading the .env file: {e}") from e
 
@@ -92,8 +99,7 @@ def prepare_api_url(credentials: dict) -> str:
     """
     logger.info("Sending API request")
     try:
-        dsb = PyDSB(credentials["DSB_USERNAME"],
-                    credentials["DSB_PASSWORD"])
+        dsb = PyDSB(credentials["DSB_USERNAME"], credentials["DSB_PASSWORD"])
         data = dsb.get_postings()
     except requests.ConnectionError as e:
         print("Exception occurred: ", e)
