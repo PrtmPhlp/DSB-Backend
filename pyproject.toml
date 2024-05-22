@@ -1,2 +1,0 @@
-[tool.pylint.MASTER]
-ignore-paths = '^Archive/.*$'

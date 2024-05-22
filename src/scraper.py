@@ -48,6 +48,37 @@ coloredlogs.install(
 )
 # ------------------------------------------------
 
+def load_env_credentials() -> dict:
+    """
+    Load environment credentials from a .env file.
+
+    :return: A dictionary containing the environment variables
+    :raises FileNotFoundError: If the .env file does not exist.
+    :raises ValueError: If .env file is empty, cannot be read, or required variables are missing.
+    :raises Exception: If any other error occurs during loading of the .env file.
+    """
+    try:
+        env_credentials = dotenv_values(".env")
+        if not env_credentials:
+            raise ValueError(
+                "Failed to load environment variables from .env file")
+        if 'DSB_USERNAME' not in env_credentials or 'DSB_PASSWORD' not in env_credentials:
+            raise ValueError(
+                "DSB_USERNAME and DSB_PASSWORD must be set in the .env file")
+        return env_credentials
+    except FileNotFoundError as fnf_error:
+        logger.error("The .env file does not exist", exc_info=True)
+        raise FileNotFoundError("The .env file does not exist") from fnf_error
+    except ValueError as ve:
+        logger.error("%s", f"Failed to load environment variables: {
+                     ve}", exc_info=True)
+        raise ValueError(f"Failed to load environment variables: {ve}") from ve
+    except Exception as e:
+        logger.error("%s", f"An error occurred while loading the .env file: {
+                     e}", exc_info=True)
+        raise ValueError(
+            f"An error occurred while loading the .env file: {e}") from e
+
 
 def prepare_api_url(credentials: dict) -> str:
     """
@@ -225,8 +256,7 @@ def main() -> None:
     runs the main scraping process on the fetched data, logs the results,
     and saves the scraped data to a JSON file.
     """
-    env_credentials = dotenv_values(".env")
-    logger.debug("%s", f"{env_credentials=}")
+    env_credentials = load_env_credentials()
     base_url = prepare_api_url(env_credentials)
     posts_dict = get_plans(base_url)
 
