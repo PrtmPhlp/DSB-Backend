@@ -1,6 +1,5 @@
 __pycache__
 .vscode/*
-secrets/secrets.yaml
 .DS_Store
 testing.py
 file.json
