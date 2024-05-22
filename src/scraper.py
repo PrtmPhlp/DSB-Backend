@@ -76,13 +76,11 @@ def load_env_credentials() -> dict:
         logger.error("The .env file does not exist", exc_info=True)
         raise FileNotFoundError("The .env file does not exist") from fnf_error
     except ValueError as ve:
-        logger.error("%s", f"Failed to load environment variables: {
-                     ve}", exc_info=True)
+        logger.error("%s", f"Failed to load environment variables: {ve}", exc_info=True)  # nopep8
         raise ValueError(f"Failed to load environment variables: {ve}") from ve
     except Exception as e:
-        logger.error(
-            "%s", f"An error occurred while loading the .env file: {e}", exc_info=True
-        )
+        logger.error("%s", f"An error occurred while loading the .env file: {e}",
+                     exc_info=True)  # nopep8
         raise ValueError(
             f"An error occurred while loading the .env file: {e}") from e
 
@@ -104,8 +102,6 @@ def prepare_api_url(credentials: dict) -> str:
     except requests.ConnectionError as e:
         print("Exception occurred: ", e)
         logger.critical("No Internet Connection")
-        # except Exception as e:
-        #     logger.error("An unexpected error occurred: %s", e)
         raise
 
     for section in data:
@@ -132,7 +128,6 @@ def request_url(url: str) -> BeautifulSoup:
         response = requests.get(url, timeout=10)
         response.raise_for_status()  # Raises HTTPError for bad responses
     except requests.exceptions.RequestException as e:
-        # Uncomment the logger statement if logging is desired.
         logger.error("%s", f"Failed to fetch data from {url}: {e}")
         raise
 
