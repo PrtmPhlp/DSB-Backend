@@ -21,34 +21,47 @@ import coloredlogs
 import requests
 from bs4 import BeautifulSoup
 from PyDSB import PyDSB
-
 # ------------------------------------------------
-# ? Arguments
-parser: argparse.ArgumentParser = argparse.ArgumentParser()
-# parser.add_argument("day", type=int, nargs='?', help="Tag für den Vertretungsplan, z.B.: 4")
-parser.add_argument("verbose", type=int, nargs="?", default="1")
-args = parser.parse_args()
 
-# ? Logging
-logger: logging.Logger = logging.getLogger(__name__)
+# Initialize logger globally
+logger = logging.getLogger(__name__)
 
-# Determine logging level based on args.verbose
-if args.verbose == 0:
-    LOGGING_LEVEL = logging.CRITICAL
-elif args.verbose == 2:
-    LOGGING_LEVEL = logging.DEBUG
-    # prevent requests (urllib3) logging:
-    logging.getLogger("urllib3").setLevel(logging.WARNING)
-else:
-    LOGGING_LEVEL = logging.INFO
 
-logger.setLevel(LOGGING_LEVEL)
-coloredlogs.install(
-    fmt="%(asctime)s - %(levelname)s - \033[94m%(message)s\033[0m",
-    datefmt="%H:%M:%S",
-    level=LOGGING_LEVEL,
-)
-# ------------------------------------------------
+def parse_args() -> argparse.Namespace:
+    """
+    Parse command-line arguments.
+
+    :return: An argparse.Namespace object containing the parsed arguments.
+    """
+    parser = argparse.ArgumentParser()
+    parser.add_argument("verbose", type=int, nargs="?", default=1,
+                        help="Set the verbosity level: 0 for CRITICAL, 1 for INFO, 2 for DEBUG")
+    return parser.parse_args()
+
+
+def setup_logging(args: argparse.Namespace) -> None:
+    """
+    Set up logging based on parsed command-line arguments.
+
+    :param args: An argparse.Namespace containing the verbosity level.
+    """
+    # Determine logging level based on args.verbose
+    if args.verbose == 0:
+        logging_level = logging.CRITICAL
+    elif args.verbose == 2:
+        logging_level = logging.DEBUG
+        # prevent requests (urllib3) logging:
+        logging.getLogger("urllib3").setLevel(logging.WARNING)
+    else:
+        logging_level = logging.INFO
+
+    # Configure the root logger
+    logging.basicConfig(level=logging_level)
+    coloredlogs.install(
+        fmt="%(asctime)s - %(levelname)s - \033[94m%(message)s\033[0m",
+        datefmt="%H:%M:%S",
+        level=logging_level,
+    )
 
 
 def load_env_credentials() -> dict[str, str | None]:
@@ -83,7 +96,7 @@ def load_env_credentials() -> dict[str, str | None]:
         logger.critical("DSB_USERNAME and DSB_PASSWORD must be set in the OS environment")
         raise ValueError("DSB_USERNAME and DSB_PASSWORD must be set in the OS environment")
 
-    logger.info("%s", "OS environment Credentials:")
+    logger.info("OS environment Credentials:")
     logger.info("-----------------")
     logger.info("Username: %s", dsb_username)
     logger.info("Password: %s", dsb_password)
@@ -139,7 +152,7 @@ def request_url(url: str) -> BeautifulSoup:
         response = requests.get(url, timeout=10)
         response.raise_for_status()  # Raises HTTPError for bad responses
     except requests.exceptions.RequestException as e:
-        logger.error("%s", f"Failed to fetch data from {url}: {e}")
+        logger.error("Failed to fetch data from %s: %s", url, e)
         raise
 
     html = response.content.decode("utf-8")
@@ -162,7 +175,7 @@ def get_plans(base_url: str) -> dict[str, str]:
             "ul", class_="day-index").find_all("a")  # type: ignore
 
     except AttributeError as e:
-        logger.error("%s", f"Error parsing HTML structure: {e}")
+        logger.error("Error parsing HTML structure: %s", e)
         raise ValueError("Expected HTML structure not found.") from e
 
     logger.debug("<a> links in <ul>, found by soup: %s", links)
@@ -192,22 +205,21 @@ def get_plans(base_url: str) -> dict[str, str]:
         if weekday:  # Only include entries with a valid weekday
             full_url = urljoin(base_url, href)
             posts_dict[f"{i+1}_{weekday}"] = full_url
-            logger.debug("%s", f"Added {weekday} to posts_dict: {full_url}")
-
+            logger.debug("Added %s to posts_dict: %s", weekday, full_url)
+    logger.debug("Posts Dictionary: %s", json.dumps(posts_dict, indent=2))
     logger.info("Found %s", " and ".join(posts_dict.keys()))
     return posts_dict
 
 
-def main_scraping(url: str) -> tuple[list[list[str]], bool]:
+def main_scraping(url: str, course: str) -> tuple[list[list[str]], bool]:
     """
-    Scrapes a given URL for specific table data related to 'MSS11'.
+    Scrapes a given URL for specific table data related to 'course'.
 
     :param url: The URL to scrape data from.
     :return: A list of lists containing the scraped table data.
     """
     soup = request_url(url)
     success = False
-
     total_replacements = []
 
     try:
@@ -217,9 +229,9 @@ def main_scraping(url: str) -> tuple[list[list[str]], bool]:
 
         for row in table.find_all("tr"):  # type: ignore
             columns = row.find_all("td")
-            if columns and columns[0].get_text().strip() == "MSS11":
+            if columns and columns[0].get_text().strip() == course:
                 success = True
-                logger.debug("MSS11 found")
+                logger.debug("%s found", course)
                 replacement = [col.get_text().strip() for col in columns]
                 total_replacements.append(replacement)
 
@@ -232,13 +244,13 @@ def main_scraping(url: str) -> tuple[list[list[str]], bool]:
                     total_replacements.append(replacement)
                     next_row = next_row.find_next_sibling("tr")
     except Exception as e:
-        logger.error("%s", f"Error processing HTML: {e}")
+        logger.error("Error processing HTML: %s", e)
         raise
-    logger.debug("%s", f"Success Status: {success}")
+    logger.debug("Success Status: %s", success)
     return total_replacements, success
 
 
-def run_main_scraping(posts_dict: dict[str, str]) -> dict[str, list[list[str]]]:
+def run_main_scraping(posts_dict: dict[str, str], course: str) -> dict[str, list[list[str]]]:
     """
     Executes the main_scraping function for each URL in the given dictionary and updates the
     dictionary with the results.
@@ -249,15 +261,21 @@ def run_main_scraping(posts_dict: dict[str, str]) -> dict[str, list[list[str]]]:
     scrape_dict = {}
     for key, url in posts_dict.items():
         try:
-            scraped_data, success = main_scraping(url)
+            scraped_data, success = main_scraping(url, course)
             scrape_dict[key] = scraped_data
             if success:
-                logger.info("%s", f"{key}: scraped successfully!")
+                logger.info("%s: scraped successfully!", key)
             else:
-                logger.warning("%s", f"{key}: class not found!")
+                logger.warning("%s: class not found!", key)
         except Exception as e:  # pylint: disable=W0718
-            logger.error("%s", f"Failed to scrape {url}: {e}")
+            logger.error("Failed to scrape %s: %s", url, e)
             scrape_dict[key] = []  # Assign an empty list in case of failure
+    logger.debug(
+        "%s",
+        json.dumps(scrape_dict, indent=2, ensure_ascii=False)
+        .encode("utf8")
+        .decode("utf8"),
+    )
     return scrape_dict
 
 
@@ -269,17 +287,18 @@ def main() -> None:
     runs the main scraping process on the fetched data, logs the results,
     and saves the scraped data to a JSON file.
     """
+    args = parse_args()
+    setup_logging(args)
+    logger.info("Script started successfully.")
+
     env_credentials: dict[str, str | None] = load_env_credentials()
+
     base_url: str = prepare_api_url(env_credentials)
+
     posts_dict: dict[str, str] = get_plans(base_url)
 
-    class_dict: dict[str, list[list[str]]] = run_main_scraping(posts_dict)
-    logger.debug(
-        "%s",
-        json.dumps(class_dict, indent=2, ensure_ascii=False)
-        .encode("utf8")
-        .decode("utf8"),
-    )
+    course: str = "GTS"
+    class_dict: dict[str, list[list[str]]] = run_main_scraping(posts_dict, course)
 
     with open("file.json", "w", encoding="utf8") as file_json:
         json.dump(class_dict, file_json, ensure_ascii=False)
