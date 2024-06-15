@@ -36,6 +36,8 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("verbose", type=int, nargs="?", default=1,
                         help="Set the verbosity level: 0 for CRITICAL, 1 for INFO, 2 for DEBUG")
+    parser.add_argument("course", type=str, nargs="?", default="MSS11",
+                        help="Select the course to scrape. Default: MSS11 ")
     return parser.parse_args()
 
 
@@ -138,7 +140,7 @@ def prepare_api_url(credentials: dict[str, str | None]) -> str:
     raise ValueError("DaVinci Touch section not found.")
 
 
-def request_url(url: str) -> BeautifulSoup:
+def request_url_data(url: str) -> BeautifulSoup:
     """
     Sends a GET request to the specified URL and returns a BeautifulSoup object parsed from the
     HTML response.
@@ -168,7 +170,7 @@ def get_plans(base_url: str) -> dict[str, str]:
     :return: A dictionary mapping plan identifiers to their URLs.
     """
     logger.info("Extracting Posts")
-    soup = request_url(base_url)
+    soup = request_url_data(base_url)
 
     try:
         links = soup.find(
@@ -211,14 +213,14 @@ def get_plans(base_url: str) -> dict[str, str]:
     return posts_dict
 
 
-def main_scraping(url: str, course: str) -> tuple[list[list[str]], bool]:
+def main_scraping(url: str, course: argparse.Namespace) -> tuple[list[list[str]], bool]:
     """
     Scrapes a given URL for specific table data related to 'course'.
 
     :param url: The URL to scrape data from.
     :return: A list of lists containing the scraped table data.
     """
-    soup = request_url(url)
+    soup = request_url_data(url)
     success = False
     total_replacements = []
 
@@ -250,7 +252,7 @@ def main_scraping(url: str, course: str) -> tuple[list[list[str]], bool]:
     return total_replacements, success
 
 
-def run_main_scraping(posts_dict: dict[str, str], course: str) -> dict[str, list[list[str]]]:
+def run_main_scraping(posts_dict: dict[str, str], course) -> dict[str, list[list[str]]]:
     """
     Executes the main_scraping function for each URL in the given dictionary and updates the
     dictionary with the results.
@@ -289,6 +291,7 @@ def main() -> None:
     """
     args = parse_args()
     setup_logging(args)
+
     logger.info("Script started successfully.")
 
     env_credentials: dict[str, str | None] = load_env_credentials()
@@ -297,8 +300,7 @@ def main() -> None:
 
     posts_dict: dict[str, str] = get_plans(base_url)
 
-    course: str = "GTS"
-    class_dict: dict[str, list[list[str]]] = run_main_scraping(posts_dict, course)
+    class_dict: dict[str, list[list[str]]] = run_main_scraping(posts_dict, args.course)
 
     with open("file.json", "w", encoding="utf8") as file_json:
         json.dump(class_dict, file_json, ensure_ascii=False)
