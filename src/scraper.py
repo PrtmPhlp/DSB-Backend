@@ -49,7 +49,7 @@ def setup_logging(args: argparse.Namespace) -> None:
     """
     # Determine logging level based on args.verbose
     if args.verbose == 0:
-        logging_level = logging.CRITICAL
+        logging_level = logging.ERROR
     elif args.verbose == 2:
         logging_level = logging.DEBUG
         # prevent requests (urllib3) logging:
@@ -266,9 +266,9 @@ def run_main_scraping(posts_dict: dict[str, str], course) -> dict[str, list[list
             scraped_data, success = main_scraping(url, course)
             scrape_dict[key] = scraped_data
             if success:
-                logger.info("%s: scraped successfully!", key)
+                logger.info("%s: found %s!", key, course)
             else:
-                logger.warning("%s: class not found!", key)
+                logger.warning("%s: class %s not found!", key, course)
         except Exception as e:  # pylint: disable=W0718
             logger.error("Failed to scrape %s: %s", url, e)
             scrape_dict[key] = []  # Assign an empty list in case of failure
