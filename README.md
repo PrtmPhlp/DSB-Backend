@@ -1,11 +1,12 @@
-This project is dedicated to fetching already existent representation plans, processing them further with sorting mechanisms and abbreviation replacements and visualizing them on a outsourced Next.js / Static Website. This Project is highly personalized to the Website system [DSBMobile](https://www.dsbmobile.de/) and Layout scheme [DAVINCI](https://davinci.stueber.de/) by [Stübner Systems](https://www.stueber.de/)
-The following process should be achieved:
+This project focuses on retrieving existing representation plans, further processing them with sorting mechanisms and abbreviation replacements, and visualizing them on an outsourced Next.js / Static Website. The project is specifically tailored to integrate with the [DSBMobile](https://www.dsbmobile.de/) system and the [DAVINCI](https://davinci.stueber.de/) layout scheme by [Stübner Systems](https://www.stueber.de/).
 
-1. Auth through API
-2. Get all currently available representation plans
-3. Fetch data and export **only** the requested course as markup, e. g. json, python list or maybe even as a [pkl](https://pkl-lang.org/index.html) file
-4. create a second processed version for easier readability with following aspects:
-    - Teacher abbreviation replacement
-    - Subject abbreviation replacement
+The process involves the following steps:
+
+1. Authentication through API.
+2. Retrieving all currently available representation plans.
+3. Fetching data and exporting **only** the requested course as a markup format, such as JSON, a Python list, or even a [PKL](https://pkl-lang.org/index.html) file.
+4. Creating a second processed version for easier readability, with the following modifications:
+    - Replacing teacher abbreviations.
+    - Replacing subject abbreviations.
     - ...
-5. export data to either _static Website_ **or** _nextjs Website_ using _real_ backend (w/ requesting support, spam protection, onload fetch etc.)
+5. Exporting data to either a _Static Website_ **or** a _Next.js Website_, utilizing a _real_ backend (with features like request handling, spam protection, on-load data fetching, etc.).
