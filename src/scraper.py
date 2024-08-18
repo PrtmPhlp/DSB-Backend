@@ -43,19 +43,18 @@ def parse_args() -> argparse.Namespace:
 
 def setup_logging(args: argparse.Namespace) -> None:
     """
-    Set up logging based on parsed command-line arguments.
+    Set up logging levelbased on parsed command-line arguments.
 
     :param args: An argparse.Namespace containing the verbosity level.
     """
-    # Determine logging level based on args.verbose
-    if args.verbose == 0:
-        logging_level = logging.ERROR
-    elif args.verbose == 2:
-        logging_level = logging.DEBUG
-        # prevent requests (urllib3) logging:
-        logging.getLogger("urllib3").setLevel(logging.WARNING)
-    else:
+    if args.verbose == 1:
         logging_level = logging.INFO
+    elif args.verbose == 2:
+        # prevent requests (urllib3) logging:
+        logging_level = logging.DEBUG
+        logging.getLogger("urllib3").setLevel(logging.WARNING)
+    elif args.verbose == 0:
+        logging_level = logging.ERROR
 
     # Configure the root logger
     logging.basicConfig(level=logging_level)
