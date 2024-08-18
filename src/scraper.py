@@ -88,10 +88,12 @@ def load_env_credentials() -> dict[str, str | None]:
     try:
         env_credentials: dict[str, str | None] = dotenv_values(".env")
         if not env_credentials:
-            raise ValueError("Failed to load environment variables from .env file")
+            raise ValueError(
+                "Failed to load environment variables from .env file")
 
         if ("DSB_USERNAME" not in env_credentials or "DSB_PASSWORD" not in env_credentials):
-            raise ValueError("DSB_USERNAME and DSB_PASSWORD must be set in the .env file")
+            raise ValueError(
+                "DSB_USERNAME and DSB_PASSWORD must be set in the .env file")
 
         # Prevent empty values
         for value in env_credentials.values():
@@ -101,18 +103,22 @@ def load_env_credentials() -> dict[str, str | None]:
         return env_credentials
 
     except FileNotFoundError:
-        logger.warning("The .env file does not exist, falling back to OS environment")
+        logger.warning(
+            "The .env file does not exist, falling back to OS environment")
 
     except ValueError:
-        logger.warning("Failed to load variables from .env file, falling back to OS environment")
+        logger.warning(
+            "Failed to load variables from .env file, falling back to OS environment")
 
     # Fallback to load environment variables from OS environment
     dsb_username: str | None = getenv("DSB_USERNAME")
     dsb_password: str | None = getenv("DSB_PASSWORD")
 
     if not dsb_username or not dsb_password:
-        logger.critical("DSB_USERNAME and DSB_PASSWORD must be set in the OS environment")
-        raise ValueError("DSB_USERNAME and DSB_PASSWORD must be set in the OS environment")
+        logger.critical(
+            "DSB_USERNAME and DSB_PASSWORD must be set in the OS environment")
+        raise ValueError(
+            "DSB_USERNAME and DSB_PASSWORD must be set in the OS environment")
 
     logger.info("OS environment Credentials:")
     logger.info("-----------------")
@@ -140,13 +146,14 @@ def prepare_api_url(credentials: dict[str, str | None]) -> str:
         ValueError: If the "DaVinci Touch" section is not found.
         Exception: For other unforeseen errors.
     """
-    if credentials["DSB_USERNAME"] is None or credentials["DSB_PASSWORD"] is None:
-        raise ValueError("DSB_USERNAME and DSB_PASSWORD must not be None")
 
     logger.info("Sending API request")
+
     try:
-        dsb = PyDSB(credentials["DSB_USERNAME"], credentials["DSB_PASSWORD"])
+        dsb = PyDSB(credentials["DSB_USERNAME"],  # type: ignore
+                    credentials["DSB_PASSWORD"])  # type: ignore
         data = dsb.get_postings()
+
     except requests.ConnectionError as e:
         logger.critical("No Internet Connection: %s", e)
         raise
@@ -202,8 +209,15 @@ def get_plans(base_url: str) -> dict[str, str]:
     soup = request_url_data(base_url)
 
     try:
+        # Find all <a> tags within the <ul> element with class "day-index"
         links = soup.find(
             "ul", class_="day-index").find_all("a")  # type: ignore
+
+        # Print a warning if no <a> tags are found
+        if not links:
+            logger.warning(
+                "No <a> tags found with class 'day-index'")
+            return {}
 
     except AttributeError as e:
         logger.error("Error parsing HTML structure: %s", e)
@@ -327,7 +341,7 @@ def main() -> None:
     args = parse_args()
     setup_logging(args)
 
-    logger.info("Script started successfully.")
+    logger.info("Script started successfully")
 
     env_credentials: dict[str, str | None] = load_env_credentials()
 
@@ -335,7 +349,8 @@ def main() -> None:
 
     posts_dict: dict[str, str] = get_plans(base_url)
 
-    class_dict: dict[str, list[list[str]]] = run_main_scraping(posts_dict, args.course)
+    class_dict: dict[str, list[list[str]]] = run_main_scraping(
+        posts_dict, args.course)
 
     with open("file.json", "w", encoding="utf8") as file_json:
         json.dump(class_dict, file_json, ensure_ascii=False)
