@@ -93,6 +93,11 @@ def load_env_credentials() -> dict[str, str | None]:
         if ("DSB_USERNAME" not in env_credentials or "DSB_PASSWORD" not in env_credentials):
             raise ValueError("DSB_USERNAME and DSB_PASSWORD must be set in the .env file")
 
+        # Prevent empty values
+        for value in env_credentials.values():
+            if not value:
+                raise ValueError
+
         return env_credentials
 
     except FileNotFoundError:
