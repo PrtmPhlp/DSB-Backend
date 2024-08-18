@@ -31,7 +31,8 @@ def parse_args() -> argparse.Namespace:
     """
     Parse command-line arguments.
 
-    :return: An argparse.Namespace object containing the parsed arguments.
+    Returns:
+        argparse.Namespace: An object containing the parsed arguments.
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("verbose", type=int, nargs="?", default=1,
@@ -43,9 +44,10 @@ def parse_args() -> argparse.Namespace:
 
 def setup_logging(args: argparse.Namespace) -> None:
     """
-    Set up logging levelbased on parsed command-line arguments.
+    Set up logging level based on parsed command-line arguments.
 
-    :param args: An argparse.Namespace containing the verbosity level.
+    Args:
+        args (argparse.Namespace): An argparse.Namespace containing the verbosity level.
     """
     if args.verbose == 1:
         logging_level = logging.INFO
@@ -69,10 +71,13 @@ def load_env_credentials() -> dict[str, str | None]:
     """
     Load environment credentials from a .env file.
 
-    :return: A dictionary containing the environment variables
-    :raises FileNotFoundError: If the .env file does not exist.
-    :raises ValueError: If .env file is empty, cannot be read, or required variables are missing.
-    :raises Exception: If any other error occurs during loading of the .env file.
+    Returns:
+        dict: A dictionary containing the environment variables.
+
+    Raises:
+        FileNotFoundError: If the .env file does not exist.
+        ValueError: If the .env file is empty, cannot be read, or required variables are missing.
+        Exception: If any other error occurs during the loading of the .env file.
     """
     try:
         env_credentials: dict[str, str | None] = dotenv_values(".env")
@@ -110,13 +115,18 @@ def load_env_credentials() -> dict[str, str | None]:
 
 def prepare_api_url(credentials: dict[str, str | None]) -> str:
     """
-    Prepares the API URL for the "DaVinci Touch" section from the given credentials.
+    Prepare the API URL for the "DaVinci Touch" section from the given credentials.
 
-    :param credentials: Dictionary containing 'username' and 'password' for auth.
-    :return: The base URL for "DaVinci Touch" section if found.
-    :raises KeyError: If a required credential is missing.
-    :raises Exception: For other unforeseen errors.
-    :raises ValueError: If the "DaVinci Touch" section is not found.
+    Args:
+        credentials (dict): Dictionary containing 'username' and 'password' for authentication.
+
+    Returns:
+        str: The base URL for the "DaVinci Touch" section if found.
+
+    Raises:
+        KeyError: If a required credential is missing.
+        ValueError: If the "DaVinci Touch" section is not found.
+        Exception: For other unforeseen errors.
     """
     if credentials["DSB_USERNAME"] is None or credentials["DSB_PASSWORD"] is None:
         raise ValueError("DSB_USERNAME and DSB_PASSWORD must not be None")
@@ -141,13 +151,18 @@ def prepare_api_url(credentials: dict[str, str | None]) -> str:
 
 def request_url_data(url: str) -> BeautifulSoup:
     """
-    Sends a GET request to the specified URL and returns a BeautifulSoup object parsed from the
+    Send a GET request to the specified URL and return a BeautifulSoup object parsed from the
     HTML response.
 
-    :param url: The URL to send the request to.
-    :return: A BeautifulSoup object of the parsed HTML document.
-    :raises requests.exceptions.RequestException: If the request fails for any reason, including
-    network issues, invalid URLs, or HTTP errors.
+    Args:
+        url (str): The URL to send the request to.
+
+    Returns:
+        BeautifulSoup: A BeautifulSoup object of the parsed HTML document.
+
+    Raises:
+        requests.exceptions.RequestException: If the request fails for any reason, including
+        network issues, invalid URLs, or HTTP errors.
     """
     try:
         response = requests.get(url, timeout=10)
@@ -163,10 +178,13 @@ def request_url_data(url: str) -> BeautifulSoup:
 
 def get_plans(base_url: str) -> dict[str, str]:
     """
-    Extracts plans from the given base URL and organizes them in a dictionary.
+    Extract plans from the given base URL and organize them in a dictionary.
 
-    :param base_url: The base URL containing the plan information.
-    :return: A dictionary mapping plan identifiers to their URLs.
+    Args:
+        base_url (str): The base URL containing the plan information.
+
+    Returns:
+        dict: A dictionary mapping plan identifiers to their URLs.
     """
     logger.info("Extracting Posts")
     soup = request_url_data(base_url)
@@ -214,10 +232,13 @@ def get_plans(base_url: str) -> dict[str, str]:
 
 def main_scraping(url: str, course: argparse.Namespace) -> tuple[list[list[str]], bool]:
     """
-    Scrapes a given URL for specific table data related to 'course'.
+    Scrape a given URL for specific table data related to 'course'.
 
-    :param url: The URL to scrape data from.
-    :return: A list of lists containing the scraped table data.
+    Args:
+        url (str): The URL to scrape data from.
+
+    Returns:
+        list: A list of lists containing the scraped table data.
     """
     soup = request_url_data(url)
     success = False
@@ -253,11 +274,14 @@ def main_scraping(url: str, course: argparse.Namespace) -> tuple[list[list[str]]
 
 def run_main_scraping(posts_dict: dict[str, str], course) -> dict[str, list[list[str]]]:
     """
-    Executes the main_scraping function for each URL in the given dictionary and updates the
+    Execute the main_scraping function for each URL in the given dictionary and update the
     dictionary with the results.
 
-    :param posts_dict: A dictionary mapping identifiers to URLs.
-    :return: A dictionary mapping identifiers to the results of the scraping process.
+    Args:
+        posts_dict (dict): A dictionary mapping identifiers to URLs.
+
+    Returns:
+        dict: A dictionary mapping identifiers to the results of the scraping process.
     """
     scrape_dict = {}
     for key, url in posts_dict.items():
@@ -284,7 +308,7 @@ def main() -> None:
     """
     Main function that orchestrates the scraping process.
 
-    Retrieves API URL using secret credentials, fetches plans from the API,
+    Retrieves the API URL using secret credentials, fetches plans from the API,
     runs the main scraping process on the fetched data, logs the results,
     and saves the scraped data to a JSON file.
     """
