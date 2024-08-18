@@ -79,6 +79,12 @@ def load_env_credentials() -> dict[str, str | None]:
         ValueError: If the .env file is empty, cannot be read, or required variables are missing.
         Exception: If any other error occurs during the loading of the .env file.
     """
+    def mask_string(s):
+        """Masks all but the first three characters of a string."""
+        if len(s) <= 3:
+            return s
+        return s[:3] + '*' * (len(s) - 3)
+
     try:
         env_credentials: dict[str, str | None] = dotenv_values(".env")
         if not env_credentials:
@@ -86,6 +92,7 @@ def load_env_credentials() -> dict[str, str | None]:
 
         if ("DSB_USERNAME" not in env_credentials or "DSB_PASSWORD" not in env_credentials):
             raise ValueError("DSB_USERNAME and DSB_PASSWORD must be set in the .env file")
+
         return env_credentials
 
     except FileNotFoundError:
@@ -104,8 +111,8 @@ def load_env_credentials() -> dict[str, str | None]:
 
     logger.info("OS environment Credentials:")
     logger.info("-----------------")
-    logger.info("Username: %s", dsb_username)
-    logger.info("Password: %s", dsb_password)
+    logger.info("Username: %s", mask_string(dsb_username))
+    logger.info("Password: %s", mask_string(dsb_password))
 
     return {
         "DSB_USERNAME": dsb_username,
