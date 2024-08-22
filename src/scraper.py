@@ -309,6 +309,7 @@ def run_main_scraping(posts_dict: dict[str, str], course) -> dict[str, list[list
     Returns:
         dict: A dictionary mapping identifiers to the results of the scraping process.
     """
+    # TODO: add option to insert file
     scrape_dict = {}
     for key, url in posts_dict.items():
         try:
@@ -352,7 +353,7 @@ def main() -> None:
     class_dict: dict[str, list[list[str]]] = run_main_scraping(
         posts_dict, args.course)
 
-    with open("file.json", "w", encoding="utf8") as file_json:
+    with open("json/file.json", "w", encoding="utf8") as file_json:
         json.dump(class_dict, file_json, ensure_ascii=False)
         logger.info("saved to 'file.json'")
 
