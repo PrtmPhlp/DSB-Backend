@@ -1,0 +1,91 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+        "createdAt": {
+            "type": "string",
+            "format": "date-time"
+        },
+        "class": {
+            "type": "string"
+        },
+        "substitution": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "date": {
+                        "type": "string",
+                        "pattern": "^\\d{2}-\\d{2}-\\d{4}$"
+                    },
+                    "weekDay": {
+                        "type": "array",
+                        "items": [
+                            {
+                                "type": "string",
+                                "pattern": "^[1-7]$"
+                            },
+                            {
+                                "type": "string",
+                                "enum": [
+                                    "Montag",
+                                    "Dienstag",
+                                    "Mittwoch",
+                                    "Donnerstag",
+                                    "Freitag",
+                                    "Samstag",
+                                    "Sonntag"
+                                ]
+                            }
+                        ]
+                    },
+                    "content": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "position": {
+                                    "type": "string",
+                                    "pattern": "^\\d+\\.$"
+                                },
+                                "teacher": {
+                                    "type": "string"
+                                },
+                                "subject": {
+                                    "type": "string"
+                                },
+                                "room": {
+                                    "type": "string"
+                                },
+                                "topic": {
+                                    "type": "string"
+                                },
+                                "info": {
+                                    "type": "string"
+                                }
+                            },
+                            "required": [
+                                "position",
+                                "teacher",
+                                "subject",
+                                "room",
+                                "topic",
+                                "info"
+                            ]
+                        }
+                    }
+                },
+                "required": [
+                    "date",
+                    "weekDay",
+                    "content"
+                ]
+            }
+        }
+    },
+    "required": [
+        "createdAt",
+        "class",
+        "substitution"
+    ]
+}

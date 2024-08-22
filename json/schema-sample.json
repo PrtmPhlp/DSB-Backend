@@ -1,0 +1,64 @@
+{
+    "createdAt": "2023-03-03T13:00:00.000Z",
+    "class": "MSS11",
+    "substitution": [
+        {
+            "date": "01-03-2024",
+            "weekDay": [
+                "3",
+                "Mittwoch"
+            ],
+            "content": [
+                {
+                    "position": "4.",
+                    "teacher": "Fd",
+                    "subject": "SK1",
+                    "room": "111",
+                    "topic": "Selbststudium",
+                    "info": ""
+                },
+                {
+                    "position": "5.",
+                    "teacher": "Ro",
+                    "subject": "ge/ek4",
+                    "room": "009",
+                    "topic": "KA-Aufsicht",
+                    "info": "test"
+                },
+                {
+                    "position": "6.",
+                    "teacher": "Zu",
+                    "subject": "ge/ek5",
+                    "room": "009",
+                    "topic": "Zusatzunterricht",
+                    "info": "test3"
+                }
+            ]
+        },
+        {
+            "date": "02-03-2024",
+            "weekDay": [
+                "4",
+                "Donnerstag"
+            ],
+            "content": [
+                {
+                    "position": "5.",
+                    "teacher": "Fz",
+                    "subject": "m4",
+                    "room": "113",
+                    "topic": "KA-Aufsicht",
+                    "info": ""
+                },
+                {
+                    "position": "5.",
+                    "teacher": "Ro",
+                    "subject": "ge/ek4",
+                    "room": "009",
+                    "topic": "KA-Aufsicht",
+                    "info": "test"
+                }
+            ]
+        }
+    ]
+}
