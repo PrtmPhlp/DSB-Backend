@@ -34,7 +34,8 @@ def parse_args() -> argparse.Namespace:
     Returns:
         argparse.Namespace: An object containing the parsed arguments.
     """
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        prog="This script scrapes data from dsbmobile.com to retrieve class replacements.")
     parser.add_argument("verbose", type=int, nargs="?", default=1,
                         help="Set the verbosity level: 0 for CRITICAL, 1 for INFO, 2 for DEBUG")
     parser.add_argument("course", type=str, nargs="?", default="MSS11",
@@ -42,20 +43,20 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def setup_logging(args: argparse.Namespace) -> None:
+def setup_logging(verbose) -> None:
     """
     Set up logging level based on parsed command-line arguments.
 
     Args:
         args (argparse.Namespace): An argparse.Namespace containing the verbosity level.
     """
-    if args.verbose == 1:
+    if verbose == 1:
         logging_level = logging.INFO
-    elif args.verbose == 2:
+    elif verbose == 2:
         # prevent requests (urllib3) logging:
         logging_level = logging.DEBUG
         logging.getLogger("urllib3").setLevel(logging.WARNING)
-    elif args.verbose == 0:
+    elif verbose == 0:
         logging_level = logging.ERROR
 
     # Configure the root logger
@@ -340,7 +341,7 @@ def main() -> None:
     and saves the scraped data to a JSON file.
     """
     args = parse_args()
-    setup_logging(args)
+    setup_logging(args.verbose)
 
     logger.info("Script started successfully")
 
