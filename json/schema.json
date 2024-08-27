@@ -14,6 +14,9 @@
             "items": {
                 "type": "object",
                 "properties": {
+                    "id": {
+                        "type": "string"
+                    },
                     "date": {
                         "type": "string",
                         "pattern": "^\\d{2}-\\d{2}-\\d{4}$"
@@ -76,6 +79,7 @@
                     }
                 },
                 "required": [
+                    "id",
                     "date",
                     "weekDay",
                     "content"
