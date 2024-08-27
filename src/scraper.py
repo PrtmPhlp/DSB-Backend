@@ -11,16 +11,17 @@ __Status__ = "Development"
 # ------------------------------------------------
 # ! Imports
 
-from os import getenv
+import json
+import argparse
 from urllib.parse import urljoin
 import logging
-import argparse
-import json
-from dotenv import dotenv_values
-import coloredlogs
+from os import getenv
 import requests
+import coloredlogs
+from dotenv import dotenv_values
 from bs4 import BeautifulSoup
 from PyDSB import PyDSB
+
 # ------------------------------------------------
 
 # Initialize logger globally
@@ -248,10 +249,10 @@ def get_plans(base_url: str) -> dict[str, str]:
 
     # Construct posts dictionary
     posts_dict = {}
-    for i, (href, weekday) in enumerate(zip(href_links, extracted_weekdays)):
+    for href, weekday in zip(href_links, extracted_weekdays):
         if weekday:  # Only include entries with a valid weekday
             full_url = urljoin(base_url, href)
-            posts_dict[f"{i+1}_{weekday}"] = full_url
+            posts_dict[f"{weekday}"] = full_url
             logger.debug("Added %s to posts_dict: %s", weekday, full_url)
     logger.debug("Posts Dictionary: %s", json.dumps(posts_dict, indent=2))
     logger.info("Found %s", " and ".join(posts_dict.keys()))
@@ -311,7 +312,6 @@ def run_main_scraping(posts_dict: dict[str, str], course) -> dict[str, list[list
     Returns:
         dict: A dictionary mapping identifiers to the results of the scraping process.
     """
-    # TODO: add option to insert file
     scrape_dict = {}
     for key, url in posts_dict.items():
         try:
@@ -355,9 +355,10 @@ def main() -> None:
     class_dict: dict[str, list[list[str]]] = run_main_scraping(
         posts_dict, args.course)
 
-    with open("json/file.json", "w", encoding="utf8") as file_json:
+    file_path: str = "json/scraped.json"
+    with open(file_path, "w", encoding="utf8") as file_json:
         json.dump(class_dict, file_json, ensure_ascii=False)
-        logger.info("saved to 'file.json'")
+        logger.info("saved to file: %s", file_path)
 
 
 if __name__ == "__main__":
