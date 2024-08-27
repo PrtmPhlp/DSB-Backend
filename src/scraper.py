@@ -38,8 +38,8 @@ def parse_args() -> argparse.Namespace:
         prog="This script scrapes data from dsbmobile.com to retrieve class replacements.")
     parser.add_argument("verbose", type=int, nargs="?", default=1,
                         help="Set the verbosity level: 0 for CRITICAL, 1 for INFO, 2 for DEBUG")
-    parser.add_argument("course", type=str, nargs="?", default="MSS11",
-                        help="Select the course to scrape. Default: MSS11 ")
+    parser.add_argument("course", type=str, nargs="?", default="MSS12",
+                        help="Select the course to scrape. Default: MSS12")
     return parser.parse_args()
 
 
@@ -117,9 +117,9 @@ def load_env_credentials() -> dict[str, str | None]:
 
     if not dsb_username or not dsb_password:
         logger.critical(
-            "DSB_USERNAME and DSB_PASSWORD must be set in the OS environment")
+            "DSB_USERNAME and DSB_PASSWORD must be set in the .env file or the OS environment")
         raise ValueError(
-            "DSB_USERNAME and DSB_PASSWORD must be set in the OS environment")
+            "DSB_USERNAME and DSB_PASSWORD must be set in the .env file or the OS environment")
 
     logger.info("OS environment Credentials:")
     logger.info("-----------------")
@@ -205,6 +205,7 @@ def get_plans(base_url: str) -> dict[str, str]:
 
     Returns:
         dict: A dictionary mapping plan identifiers to their URLs.
+            e.g. {'1_Montag': 'https://light.dsbcontrol.de/DSBlightWebsite/Data/{id}/V_DC_001.html'}
     """
     logger.info("Extracting Posts")
     soup = request_url_data(base_url)
