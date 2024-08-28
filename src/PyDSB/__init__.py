@@ -56,7 +56,7 @@ class PyDSB:
         r = requests.get(BASE_URL + "/authid", params=params, timeout=10)
 
         if r.text == "\"\"":  # Me when http status code is always 200 :trollface:
-            logger.critical("PyDSB: Invalid Credentials [%s, %s]", username, password)
+            logger.critical("PyDSB: Invalid Credentials!")
             sys.exit(1)
             # raise Exception("Invalid Credentials")
         else:
