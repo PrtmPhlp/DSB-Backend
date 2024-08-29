@@ -17,8 +17,7 @@ from typing import Dict, List, Any
 import coloredlogs
 
 # ------------------------------------------------
-
-# Initialize logger globally
+# S: Logger
 logger = logging.getLogger(__name__)
 LOGGING_LEVEL = logging.INFO
 logging.basicConfig(level=LOGGING_LEVEL)
@@ -27,6 +26,8 @@ coloredlogs.install(
     datefmt="%H:%M:%S",
     level=LOGGING_LEVEL,
 )
+# ------------------------------------------------
+
 
 # Constants
 DATE_FORMAT = "%d-%m-%Y"
