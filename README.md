@@ -26,6 +26,30 @@ The process involves the following steps:
 > [!WARNING]
 > This project is still under active development and may not be ready for use yet.
 
+```console
+$ python src/scraper.py -h
+
+Usage: python src/scraper.py [-h] [-v] [-c [COURSE]] [-p] [--version]
+
+     ___      ___  ___ ___
+    | _ \_  _|   \/ __| _ )
+    |  _/ || | |) \__ \ _ \
+    |_|  \_, |___/|___/___/
+         |__/
+
+This script scrapes data from dsbmobile.com to retrieve class replacements.
+
+Options:
+  -h, --help            show this help message and exit
+  -v, --verbose         Set the verbosity level: 0 for CRITICAL, 1 for INFO, 2
+                        for DEBUG
+  -c, --course [COURSE]
+                        Select the course to scrape. Default: MSS12
+  -p, --print-output    Print output to console
+  --version             show program's version number and exit
+
+```
+
 ### Prerequisites
 
 Before you begin, ensure you have Python installed on your machine. You can download it from the official [Python website](https://www.python.org/downloads/). This project was developed using Python 3.12.4, so no guarantees are made for other versions.
