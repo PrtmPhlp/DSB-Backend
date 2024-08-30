@@ -16,8 +16,9 @@ import argparse
 from urllib.parse import urljoin
 import logging
 from os import getenv
-import requests
+from rich_argparse import RawDescriptionRichHelpFormatter
 import coloredlogs
+import requests
 from dotenv import dotenv_values
 from bs4 import BeautifulSoup
 from PyDSB import PyDSB
@@ -35,12 +36,28 @@ def parse_args() -> argparse.Namespace:
     Returns:
         argparse.Namespace: An object containing the parsed arguments.
     """
+    ascii_art = r"""
+     ___      ___  ___ ___
+    | _ \_  _|   \/ __| _ )
+    |  _/ || | |) \__ \ _ \
+    |_|  \_, |___/|___/___/
+         |__/
+    """
     parser = argparse.ArgumentParser(
-        prog="This script scrapes data from dsbmobile.com to retrieve class replacements.")
-    parser.add_argument("verbose", type=int, nargs="?", default=1,
+        prog="python src/scraper.py",
+        description=ascii_art +
+        "\nThis script scrapes data from dsbmobile.com to retrieve class replacements.",
+        # Ensures raw formatting for the art
+        formatter_class=RawDescriptionRichHelpFormatter)
+    parser.add_argument("-v", "--verbose", action="store_true",
                         help="Set the verbosity level: 0 for CRITICAL, 1 for INFO, 2 for DEBUG")
-    parser.add_argument("course", type=str, nargs="?", default="MSS12",
+    parser.add_argument("-c", "--course", type=str, nargs="?", default="MSS12",
                         help="Select the course to scrape. Default: MSS12")
+    parser.add_argument('-p', "--print-output",
+                        action='store_true', help='Print output to console')
+    parser.add_argument(
+        "--version", action="version", version="[argparse.prog]%(prog)s[/] version [i]1.1.0[/]"
+    )
     return parser.parse_args()
 
 
@@ -51,14 +68,11 @@ def setup_logging(verbose) -> None:
     Args:
         args (argparse.Namespace): An argparse.Namespace containing the verbosity level.
     """
-    if verbose == 1:
-        logging_level = logging.INFO
-    elif verbose == 2:
-        # prevent requests (urllib3) logging:
+    if verbose:
         logging_level = logging.DEBUG
         logging.getLogger("urllib3").setLevel(logging.WARNING)
-    elif verbose == 0:
-        logging_level = logging.ERROR
+    else:
+        logging_level = logging.INFO
 
     # Configure the root logger
     logging.basicConfig(level=logging_level)
@@ -231,25 +245,24 @@ def get_plans(base_url: str) -> dict[str, str]:
     # Extract href attributes and link text
     href_links = [link.get("href") for link in links]
     text_list = [link.text for link in links]
-
-    weekdays = [
-        "Montag",
-        "Dienstag",
-        "Mittwoch",
-        "Donnerstag",
-        "Freitag",
-        "Samstag",
-        "Sonntag",
-    ]
-    # Extract weekdays from text_list
-    extracted_weekdays = [
-        next((weekday for weekday in weekdays if weekday in text), None)
-        for text in text_list
-    ]
+    print(href_links, text_list)
+    # weekdays = [
+    #     "Montag",
+    #     "Dienstag",
+    #     "Mittwoch",
+    #     "Donnerstag",
+    #     "Freitag",
+    #     "Samstag",
+    #     "Sonntag",
+    # ]
+    # change format from ["02.09.2024 Mittwoch", ...] to ["Montag_02-09-2024", ...]
+    weekdays_with_date = [f"{day}_{date.replace(
+        '.', '-')}" for date, day in (item.split() for item in text_list)]
+    logger.info(weekdays_with_date)
 
     # Construct posts dictionary
     posts_dict = {}
-    for href, weekday in zip(href_links, extracted_weekdays):
+    for i, (href, weekday) in enumerate(zip(href_links, weekdays_with_date)):
         if weekday:  # Only include entries with a valid weekday
             full_url = urljoin(base_url, href)
             posts_dict[f"{weekday}"] = full_url
@@ -259,7 +272,7 @@ def get_plans(base_url: str) -> dict[str, str]:
     return posts_dict
 
 
-def main_scraping(url: str, course: argparse.Namespace) -> tuple[list[list[str]], bool]:
+def main_scraping(url: str, course: str) -> tuple[list[list[str]], bool]:
     """
     Scrape a given URL for specific table data related to 'course'.
 
@@ -301,7 +314,8 @@ def main_scraping(url: str, course: argparse.Namespace) -> tuple[list[list[str]]
     return total_replacements, success
 
 
-def run_main_scraping(posts_dict: dict[str, str], course) -> dict[str, list[list[str]]]:
+def run_main_scraping(posts_dict: dict[str, str],
+                      course: str, print_output: bool) -> dict[str, list[list[str]]]:
     """
     Execute the main_scraping function for each URL in the given dictionary and update the
     dictionary with the results.
@@ -324,12 +338,13 @@ def run_main_scraping(posts_dict: dict[str, str], course) -> dict[str, list[list
         except Exception as e:  # pylint: disable=W0718
             logger.error("Failed to scrape %s: %s", url, e)
             scrape_dict[key] = []  # Assign an empty list in case of failure
-    logger.debug(
-        "%s",
-        json.dumps(scrape_dict, indent=2, ensure_ascii=False)
-        .encode("utf8")
-        .decode("utf8"),
-    )
+    if print_output:
+        logger.info(
+            "%s",
+            json.dumps(scrape_dict, indent=2, ensure_ascii=False)
+            .encode("utf8")
+            .decode("utf8"),
+        )
     return scrape_dict
 
 
@@ -353,7 +368,7 @@ def main() -> None:
     posts_dict: dict[str, str] = get_plans(base_url)
 
     class_dict: dict[str, list[list[str]]] = run_main_scraping(
-        posts_dict, args.course)
+        posts_dict, args.course, args.print_output)
 
     file_path: str = "json/scraped.json"
     with open(file_path, "w", encoding="utf8") as file_json:
