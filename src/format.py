@@ -30,8 +30,6 @@ coloredlogs.install(
 
 
 # Constants
-DATE_FORMAT = "%d-%m-%Y"
-ISO_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 WEEKDAY_MAP: Dict[str, int] = {
     "Montag": 1,
     "Dienstag": 2,
@@ -43,7 +41,7 @@ WEEKDAY_MAP: Dict[str, int] = {
 }
 
 
-def create_substitution_entry(day: str, entries: List[List[str]]) -> Dict[str, Any]:
+def create_substitution_entry(day: str, date: str, entries: List[List[str]]) -> Dict[str, Any]:
     """
     Creates a substitution entry for a specific day.
 
@@ -64,7 +62,7 @@ def create_substitution_entry(day: str, entries: List[List[str]]) -> Dict[str, A
 
     substitution_entry = {
         "id": str(create_substitution_entry.call_count),
-        "date": datetime.now().strftime(DATE_FORMAT),
+        "date": date,
         "weekDay": [str(iso_weekday_number), day],
         "content": []
     }
@@ -104,8 +102,10 @@ def fill_json_template(json_data: Dict[str, List[List[str]]]) -> Dict[str, Any]:
     }
 
     for day, entries in json_data.items():
+        # Splitting the string using '_'
+        day, date = day.split('_')
         try:
-            substitution_entry = create_substitution_entry(day, entries)
+            substitution_entry = create_substitution_entry(day, date, entries)
             output_json["substitution"].append(substitution_entry)
         except Exception as e:  # pylint: disable=W0718
             logging.error("Error processing day '%s': %s", day, e)
@@ -145,3 +145,5 @@ def main(input_file: str, output_file: str) -> None:
 # Example usage
 if __name__ == "__main__":
     main('json/scraped.json', 'json/formatted.json')
+    from os import system
+    system("cat json/formatted.json | jq")
