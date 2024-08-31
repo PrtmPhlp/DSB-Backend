@@ -16,6 +16,7 @@ import argparse
 from urllib.parse import urljoin
 import logging
 from os import getenv
+from blinker import Namespace
 from rich_argparse import RawDescriptionRichHelpFormatter
 import coloredlogs
 import requests
@@ -271,6 +272,7 @@ def main_scraping(url: str, course: str) -> tuple[list[list[str]], bool]:
     Returns:
         list: A list of lists containing the scraped table data.
     """
+
     soup = request_url_data(url)
     success = False
     total_replacements = []
@@ -304,7 +306,7 @@ def main_scraping(url: str, course: str) -> tuple[list[list[str]], bool]:
 
 
 def run_main_scraping(posts_dict: dict[str, str],
-                      course: str, print_output: bool) -> dict[str, list[list[str]]]:
+                      course: str | None, print_output: bool) -> dict[str, list[list[str]]]:
     """
     Execute the main_scraping function for each URL in the given dictionary and update the
     dictionary with the results.
@@ -315,6 +317,11 @@ def run_main_scraping(posts_dict: dict[str, str],
     Returns:
         dict: A dictionary mapping identifiers to the results of the scraping process.
     """
+    if course is None:
+        logger.error("Course argument must have a string value if provided")
+        raise ValueError(
+            "Course argument must have a string value if provided")
+
     scrape_dict = {}
     for key, url in posts_dict.items():
         try:
@@ -345,7 +352,7 @@ def main() -> None:
     runs the main scraping process on the fetched data, logs the results,
     and saves the scraped data to a JSON file.
     """
-    args = parse_args()
+    args: argparse.Namespace = parse_args()
     setup_logging(args.verbose)
 
     logger.info("Script started successfully")
