@@ -14,13 +14,14 @@
 name: Codacy Security Scan
 
 on:
-  push:
-    branches: [ "master" ]
-  pull_request:
-    # The branches below must be a subset of the branches above
-    branches: [ "master" ]
-  schedule:
-    - cron: '24 0 * * 4'
+  # push:
+  #   branches: [ "master" ]
+  # pull_request:
+  #   # The branches below must be a subset of the branches above
+  #   branches: [ "master" ]
+  # schedule:
+  #   - cron: '24 0 * * 4'
+  workflow_dispatch: 
 
 permissions:
   contents: read
