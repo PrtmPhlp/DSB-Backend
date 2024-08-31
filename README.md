@@ -7,7 +7,7 @@ This project is focused on retrieving existing representation plans, processing 
 Additionally, this project aims to visualize the gathered data on an external Next.js / Static Website to provide a personalized user experience. The project is currently highly tailored to integrate with the [DSBMobile](https://www.dsbmobile.de/) system and the [DAVINCI](https://davinci.stueber.de/) layout scheme by [Stüber Systems](https://www.stueber.de/).
 
 > [!NOTE]
-> The following steps may not be entirely accurate, as the project is still under active development.
+> The following steps may not be entirely accurate, as the project is still under heavy active development.
 
 The process involves the following steps:
 
@@ -119,12 +119,76 @@ Once the virtual environment is set up, dependencies are installed, and secrets 
 ```bash
 python src/scraper.py
 ```
+or
+```bash
+python src/runner.py
+```
 
 For help running the application, use the `--help` flag:
 
 ```bash
 python src/scraper.py --help
 ```
+...or
+```bash
+python src/runner.py --help
+```
+
+### Sample output
+
+```json
+{
+	"createdAt": "2024-08-31T21:45:26.027867",
+	"class": "MSS12",
+	"substitution": [
+		{
+			"id": "1",
+			"date": "02-09-2024",
+			"weekDay": [
+				"1",
+				"Montag"
+			],
+			"content": [
+				{
+					"position": "6.",
+					"teacher": "(xy)",
+					"subject": "xy",
+					"room": "123",
+					"topic": "...",
+					"info": "..."
+				}
+			]
+		},
+		{
+			"id": "2",
+			"date": "03-09-2024",
+			"weekDay": [
+				"2",
+				"Dienstag"
+			],
+			"content": [
+				{
+					"position": "6.",
+					"teacher": "(xy)",
+					"subject": "xy",
+					"room": "123",
+					"topic": "...",
+					"info": "..."
+				},
+				{
+					"position": "6.",
+					"teacher": "(xy)",
+					"subject": "xy",
+					"room": "123",
+					"topic": "...",
+					"info": "..."
+				}
+			]
+		}
+	]
+}
+```
+
 
 ## Contributing
 
