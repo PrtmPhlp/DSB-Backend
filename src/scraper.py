@@ -247,8 +247,8 @@ def get_plans(base_url: str) -> dict[str, str]:
     text_list = [link.text for link in links]
 
     # change format from ["02.09.2024 Mittwoch", ...] to ["Montag_02-09-2024", ...]
-    weekdays_with_date = [f"{day}_{date.replace(
-        '.', '-')}" for date, day in (item.split() for item in text_list)]
+    weekdays_with_date = [f"{day}_{date.replace('.', '-')}"
+                          for date, day in (item.split() for item in text_list)]
     logger.info(weekdays_with_date)
 
     # Construct posts dictionary
