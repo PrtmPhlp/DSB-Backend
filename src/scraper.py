@@ -245,16 +245,7 @@ def get_plans(base_url: str) -> dict[str, str]:
     # Extract href attributes and link text
     href_links = [link.get("href") for link in links]
     text_list = [link.text for link in links]
-    print(href_links, text_list)
-    # weekdays = [
-    #     "Montag",
-    #     "Dienstag",
-    #     "Mittwoch",
-    #     "Donnerstag",
-    #     "Freitag",
-    #     "Samstag",
-    #     "Sonntag",
-    # ]
+
     # change format from ["02.09.2024 Mittwoch", ...] to ["Montag_02-09-2024", ...]
     weekdays_with_date = [f"{day}_{date.replace(
         '.', '-')}" for date, day in (item.split() for item in text_list)]
@@ -262,13 +253,11 @@ def get_plans(base_url: str) -> dict[str, str]:
 
     # Construct posts dictionary
     posts_dict = {}
-    for i, (href, weekday) in enumerate(zip(href_links, weekdays_with_date)):
+    for href, weekday in zip(href_links, weekdays_with_date):
         if weekday:  # Only include entries with a valid weekday
             full_url = urljoin(base_url, href)
             posts_dict[f"{weekday}"] = full_url
             logger.debug("Added %s to posts_dict: %s", weekday, full_url)
-    logger.debug("Posts Dictionary: %s", json.dumps(posts_dict, indent=2))
-    logger.info("Found %s", " and ".join(posts_dict.keys()))
     return posts_dict
 
 
