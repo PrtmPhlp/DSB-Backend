@@ -41,7 +41,47 @@ except json.JSONDecodeError:
     plans = {"substitution": []}
 
 
-@app.route('/plan/', methods=['GET'])
+@app.route('/', methods=['GET'])
+def hello_world() -> Response:
+    """
+    Man Page for the Unofficial DSBmobile API Server.
+
+    Returns:
+        Response: HTML formatted man page with API details.
+    """
+    man_page = """
+    <h1>Unofficial DSBmobile API Server</h1>
+    <h2>Available Endpoints</h2>
+    <pre>
+    1. /                     - Display this man page.
+    2. /api/                 - Retrieve all substitution plans.
+    3. /api/&lt;task_id&gt;/       - Retrieve a specific substitution entry by index.
+    4. /api/&lt;task_id&gt;/&lt;content_id&gt;/ - Retrieve a specific content item from a substitution entry.
+    5. /api/healthcheck      - Check the health status of the API server.
+    </pre>
+    <h2>Endpoint Descriptions</h2>
+    <pre>
+    /api/                   : Returns a JSON object containing all substitution plans.
+                              Example: GET /api/
+
+    /api/&lt;task_id&gt;/          : Returns a specific substitution entry identified by its index.
+                              Example: GET /api/1/
+
+    /api/&lt;task_id&gt;/&lt;content_id&gt;/ : Returns a specific content item from a substitution entry.
+                              Example: GET /api/1/2/
+
+    /api/healthcheck      : Simple endpoint to check the health of the server.
+                              Example: GET /api/healthcheck
+    </pre>
+    <h2>Contact</h2>
+    <p>Author: <a href="https://pertermann.de">PrtmPhlp</a></p>
+    <p>Contact: <a href="mailto:contact@pertermann.de">contact@pertermann.de</a></p>
+    <p>Status: Development</p>
+    """
+    return Response(man_page, mimetype='text/html')
+
+
+@app.route('/api/', methods=['GET'])
 def get_plans() -> Response:
     """
     Retrieve all plans.
@@ -52,7 +92,7 @@ def get_plans() -> Response:
     return jsonify(plans)
 
 
-@app.route('/plan/<int:task_id>', methods=['GET'])
+@app.route('/api/<int:task_id>/', methods=['GET'])
 def get_plan(task_id: int) -> Response:
     """
     Retrieve a single substitution entry by its index.
@@ -70,7 +110,7 @@ def get_plan(task_id: int) -> Response:
         abort(404, description="Substitution entry not found")
 
 
-@app.route('/plan/<int:task_id>/<int:content_id>', methods=['GET'])
+@app.route('/api/<int:task_id>/<int:content_id>/', methods=['GET'])
 def get_content(task_id: int, content_id: int) -> Response:
     """
     Retrieve a specific content item from a substitution entry.
@@ -88,6 +128,17 @@ def get_content(task_id: int, content_id: int) -> Response:
         return jsonify(content)
     except IndexError:
         abort(404, description="Content item not found")
+
+
+@app.route("/api/healthcheck", methods=["GET"])
+def healthcheck():
+    """
+    Check the health of the server.
+
+    Returns:
+        dict: Health status message.
+    """
+    return {"status": "success", "message": "Integrate Flask Framework with Next.js"}
 
 
 if __name__ == '__main__':
