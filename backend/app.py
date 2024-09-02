@@ -11,21 +11,13 @@ __Status__ = "Development"
 # ! Imports
 
 import json
-import logging
-from flask import Flask, jsonify, abort, Response
-import coloredlogs
 
-# ------------------------------------------------
-# S: Logger
-logger = logging.getLogger(__name__)
-LOGGING_LEVEL = logging.INFO
-logging.basicConfig(level=LOGGING_LEVEL)
-coloredlogs.install(
-    fmt="%(asctime)s - %(levelname)s - \033[94m%(message)s\033[0m",
-    datefmt="%H:%M:%S",
-    level=LOGGING_LEVEL,
-)
-# ------------------------------------------------
+from flask import Flask, Response, abort, jsonify
+
+from logger import setup_logger
+
+# Initialize logger
+logger = setup_logger(__name__, 10)
 
 app = Flask(__name__)
 
