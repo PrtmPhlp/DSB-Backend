@@ -5,9 +5,9 @@ Example for runner as a module
 """
 
 import scraper
-import format
+import format_json
 import schema
 
 scraper.main()
-format.main('json/scraped.json', 'json/formatted.json')
+format_json.main('json/scraped.json', 'json/formatted.json')
 schema.main('json/schema.json', 'json/formatted.json')

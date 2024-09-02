@@ -11,23 +11,13 @@ __Status__ = "Development"
 # ! Imports
 
 import json
-import logging
 from datetime import datetime
-from typing import Dict, List, Any
-import coloredlogs
+from typing import Any, Dict, List
 
-# ------------------------------------------------
-# S: Logger
-logger = logging.getLogger(__name__)
-LOGGING_LEVEL = logging.INFO
-logging.basicConfig(level=LOGGING_LEVEL)
-coloredlogs.install(
-    fmt="%(asctime)s - %(levelname)s - \033[94m%(message)s\033[0m",
-    datefmt="%H:%M:%S",
-    level=LOGGING_LEVEL,
-)
-# ------------------------------------------------
+from logger import setup_logger
 
+# Initialize logger
+logging = setup_logger(__name__, 10)
 
 # Constants
 WEEKDAY_MAP: Dict[str, int] = {
@@ -145,5 +135,5 @@ def main(input_file: str, output_file: str) -> None:
 # Example usage
 if __name__ == "__main__":
     main('json/scraped.json', 'json/formatted.json')
-    from os import system
-    system("cat json/formatted.json | jq")
+    # from os import system # type: ignore
+    # system("cat json/formatted.json | jq") # type: ignore
