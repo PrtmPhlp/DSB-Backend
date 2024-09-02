@@ -17,7 +17,7 @@ from typing import Any, Dict, List
 from logger import setup_logger
 
 # Initialize logger
-logging = setup_logger(__name__, 10)
+logger = setup_logger(__name__, 10)
 
 # Constants
 WEEKDAY_MAP: Dict[str, int] = {
@@ -98,7 +98,7 @@ def fill_json_template(json_data: Dict[str, List[List[str]]]) -> Dict[str, Any]:
             substitution_entry = create_substitution_entry(day, date, entries)
             output_json["substitution"].append(substitution_entry)
         except Exception as e:  # pylint: disable=W0718
-            logging.error("Error processing day '%s': %s", day, e)
+            logger.error("Error processing day '%s': %s", day, e)
     return output_json
 
 
@@ -114,10 +114,10 @@ def main(input_file: str, output_file: str) -> None:
         with open(input_file, 'r', encoding='utf-8') as file:
             json_data: Dict[str, List[List[str]]] = json.load(file)
     except FileNotFoundError:
-        logging.error("The file '%s' was not found.", input_file)
+        logger.error("The file '%s' was not found.", input_file)
         return
     except json.JSONDecodeError:
-        logging.error("Error decoding JSON from the file '%s'.", input_file)
+        logger.error("Error decoding JSON from the file '%s'.", input_file)
         return
 
     filled_template = fill_json_template(json_data)
@@ -126,10 +126,10 @@ def main(input_file: str, output_file: str) -> None:
         with open(output_file, 'w', encoding='utf-8') as file:
             json.dump(filled_template, file, indent=4, ensure_ascii=False)
     except Exception as e:  # pylint: disable=W0718
-        logging.error("Error saving data to '%s': %s", output_file, e)
+        logger.error("Error saving data to '%s': %s", output_file, e)
         return
 
-    logging.info("JSON template filled and saved to '%s'", output_file)
+    logger.info("JSON template filled and saved to '%s'", output_file)
 
 
 # Example usage
