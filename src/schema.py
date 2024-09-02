@@ -11,7 +11,14 @@ __Status__ = "Development"
 # ! Imports
 
 import json
+
 import jsonschema
+import jsonschema.exceptions
+
+from logger import setup_logger
+
+# Initialize logger
+logger = setup_logger(__name__)
 
 # ------------------------------------------------
 
@@ -36,10 +43,10 @@ def main(schema_file, json_file):
     # Validate the JSON file against the schema
     try:
         jsonschema.validate(instance=json_data, schema=schema)
-        print("JSON file is valid.")
-    except jsonschema.exceptions.ValidationError as e:  # type: ignore
-        print("JSON file is invalid.")
-        print("Error:", e.message)
+        logger.info("JSON file is valid.")
+    except jsonschema.exceptions.ValidationError:
+        logger.error("JSON file is invalid.")
+        raise
 
 
 if __name__ == "__main__":

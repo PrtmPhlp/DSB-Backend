@@ -11,23 +11,22 @@ __Status__ = "Development"
 # ------------------------------------------------
 # ! Imports
 
-import json
 import argparse
-from urllib.parse import urljoin
+import json
 import logging
 from os import getenv
-from blinker import Namespace
-from rich_argparse import RawDescriptionRichHelpFormatter
-import coloredlogs
+from urllib.parse import urljoin
+
 import requests
-from dotenv import dotenv_values
 from bs4 import BeautifulSoup
+from dotenv import dotenv_values
+from rich_argparse import RawDescriptionRichHelpFormatter
+
+from logger import setup_logger
 from PyDSB import PyDSB
 
-# ------------------------------------------------
-
-# Initialize logger globally
-logger = logging.getLogger(__name__)
+# Initialize logger
+logger = setup_logger(__name__)
 
 
 def parse_args() -> argparse.Namespace:
@@ -76,12 +75,8 @@ def setup_logging(verbose) -> None:
         logging_level = logging.INFO
 
     # Configure the root logger
-    logging.basicConfig(level=logging_level)
-    coloredlogs.install(
-        fmt="%(asctime)s - %(levelname)s - \033[94m%(message)s\033[0m",
-        datefmt="%H:%M:%S",
-        level=logging_level,
-    )
+    print(logging_level)
+    logger.setLevel(level=logging_level)
 
 
 def load_env_credentials() -> dict[str, str | None]:
