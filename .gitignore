@@ -7,3 +7,4 @@ testing.py
 .venv/*
 .env
 Archive/backup/*
+log.txt
