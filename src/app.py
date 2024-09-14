@@ -17,7 +17,7 @@ from flask import Flask, Response, abort, jsonify
 from logger import setup_logger
 
 # Initialize logger
-logger = setup_logger(__name__, 10)
+logger = setup_logger(__name__)
 
 app = Flask(__name__)
 
