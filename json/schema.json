@@ -49,7 +49,7 @@
                             "properties": {
                                 "position": {
                                     "type": "string",
-                                    "pattern": "^\\d+\\.$"
+                                    "pattern": "^(\\d+\\.|MiPau)$"
                                 },
                                 "teacher": {
                                     "type": "string"

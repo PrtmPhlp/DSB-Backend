@@ -11,8 +11,10 @@ __Status__ = "Development"
 # ! Imports
 
 import json
+import socket
 
 from flask import Flask, Response, abort, jsonify
+from flask_cors import CORS
 
 from logger import setup_logger
 
@@ -20,6 +22,7 @@ from logger import setup_logger
 logger = setup_logger(__name__)
 
 app = Flask(__name__)
+CORS(app)  # This enables CORS for all routes
 
 # Load JSON from file json/schema-sample.json
 try:
@@ -130,8 +133,11 @@ def healthcheck():
     Returns:
         dict: Health status message.
     """
-    return {"status": "success", "message": "Integrate Flask Framework with Next.js"}
+    return {"status": "success", "message": "Flask API for DSBMobile data"}
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    hostname = socket.gethostname()
+    local_ip = socket.gethostbyname(hostname)
+    app.run(host='0.0.0.0', port=5555, debug=True)
+    print(f"Server running on http://{local_ip}:5555")
