@@ -10,6 +10,7 @@ charset-normalizer==3.3.2
 click==8.1.7
 coloredlogs==15.0.1
 Flask==3.0.3
+Flask-Cors==5.0.0
 frozenlist==1.4.1
 humanfriendly==10.0
 idna==3.8
