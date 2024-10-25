@@ -50,7 +50,7 @@ def parse_args() -> argparse.Namespace:
         # Ensures raw formatting for the art
         formatter_class=RawDescriptionRichHelpFormatter)
     parser.add_argument("-v", "--verbose", action="store_true",
-                        help="Set the verbosity level: 0 for CRITICAL, 1 for INFO, 2 for DEBUG")
+                        help="Set verbosity level to DEBUG")
     parser.add_argument("-c", "--course", type=str, nargs="?", default="MSS12",
                         help="Select the course to scrape. Default: MSS12")
     parser.add_argument('-p', "--print-output",
@@ -75,7 +75,6 @@ def setup_logging(verbose) -> None:
         logging_level = logging.INFO
 
     # Configure the root logger
-    print(logging_level)
     logger.setLevel(level=logging_level)
 
 
@@ -364,7 +363,11 @@ def main() -> None:
     file_path: str = "json/scraped.json"
     with open(file_path, "w", encoding="utf8") as file_json:
         json.dump(class_dict, file_json, ensure_ascii=False)
-        logger.info("saved to file: %s", file_path)
+
+
+def get_args() -> argparse.Namespace:
+    """Return the parsed arguments."""
+    return parse_args()
 
 
 if __name__ == "__main__":
