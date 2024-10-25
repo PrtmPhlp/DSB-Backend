@@ -15,6 +15,7 @@ from datetime import datetime
 from typing import Any, Dict, List
 
 from logger import setup_logger
+from scraper import get_args
 
 # Initialize logger
 logger = setup_logger(__name__, 10)
@@ -75,19 +76,20 @@ def create_substitution_entry(day: str, date: str, entries: List[List[str]]) -> 
     return substitution_entry
 
 
-def fill_json_template(json_data: Dict[str, List[List[str]]]) -> Dict[str, Any]:
+def fill_json_template(json_data: Dict[str, List[List[str]]], course: str) -> Dict[str, Any]:
     """
     Fills in the JSON template with the provided data.
 
     Args:
         json_data (Dict[str, List[List[str]]]): The JSON data to process.
+        course (str): The course name.
 
     Returns:
         Dict[str, Any]: The filled JSON template.
     """
     output_json = {
         "createdAt": datetime.now().isoformat(),
-        "class": "MSS12",
+        "class": course,
         "substitution": []
     }
 
@@ -110,6 +112,7 @@ def main(input_file: str, output_file: str) -> None:
         input_file (str): Path to the input JSON file.
         output_file (str): Path to the output JSON file.
     """
+    args = get_args()  # Get args from scraper
     try:
         with open(input_file, 'r', encoding='utf-8') as file:
             json_data: Dict[str, List[List[str]]] = json.load(file)
@@ -120,11 +123,11 @@ def main(input_file: str, output_file: str) -> None:
         logger.error("Error decoding JSON from the file '%s'.", input_file)
         return
 
-    filled_template = fill_json_template(json_data)
+    filled_json = fill_json_template(json_data, args.course)
 
     try:
         with open(output_file, 'w', encoding='utf-8') as file:
-            json.dump(filled_template, file, indent=4, ensure_ascii=False)
+            json.dump(filled_json, file, indent=4, ensure_ascii=False)
     except Exception as e:  # pylint: disable=W0718
         logger.error("Error saving data to '%s': %s", output_file, e)
         return
