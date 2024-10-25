@@ -13,7 +13,7 @@ __Status__ = "Development"
 import json
 import socket
 
-from flask import Flask, Response, abort, jsonify
+from flask import Flask, Response, abort, jsonify, current_app
 from flask_cors import CORS # pylint: disable=E0401 # type: ignore
 
 from logger import setup_logger
@@ -24,17 +24,21 @@ logger = setup_logger(__name__)
 app = Flask(__name__)
 CORS(app)  # This enables CORS for all routes
 
-# Load JSON from file json/schema-sample.json
-try:
-    with open('json/formatted.json', 'r', encoding='utf-8') as schema_file:
-        plans = json.load(schema_file)
-except FileNotFoundError:
-    logger.info("Error: The file 'json/formatted.json' was not found.")
-    plans = {"substitution": []}
-except json.JSONDecodeError:
-    logger.info("Error: Failed to decode JSON from the file.")
-    plans = {"substitution": []}
+def load_json_file():
+    """
+    Load JSON data from file.
 
+    Returns:
+        dict: Loaded JSON data or empty dict with 'substitution' key if error occurs.
+    """
+    try:
+        with open('json/formatted.json', 'r', encoding='utf-8') as schema_file:
+            return json.load(schema_file)
+    except FileNotFoundError:
+        logger.info("Error: The file 'json/formatted.json' was not found.")
+    except json.JSONDecodeError:
+        logger.info("Error: Failed to decode JSON from the file.")
+    return {"substitution": []}
 
 @app.route('/', methods=['GET'])
 def hello_world() -> Response:
@@ -75,7 +79,6 @@ def hello_world() -> Response:
     """
     return Response(man_page, mimetype='text/html')
 
-
 @app.route('/api/', methods=['GET'])
 def get_plans() -> Response:
     """
@@ -84,8 +87,8 @@ def get_plans() -> Response:
     Returns:
         Response: A JSON response containing all plans.
     """
+    plans = load_json_file()
     return jsonify(plans)
-
 
 @app.route('/api/<int:task_id>/', methods=['GET'])
 def get_plan(task_id: int) -> Response:
@@ -98,12 +101,12 @@ def get_plan(task_id: int) -> Response:
     Returns:
         Response: A JSON response containing the substitution entry, or a 404 error if not found.
     """
+    plans = load_json_file()
     try:
         substitution = plans['substitution'][task_id]
         return jsonify(substitution)
     except IndexError:
         abort(404, description="Substitution entry not found")
-
 
 @app.route('/api/<int:task_id>/<int:content_id>/', methods=['GET'])
 def get_content(task_id: int, content_id: int) -> Response:
@@ -117,13 +120,13 @@ def get_content(task_id: int, content_id: int) -> Response:
     Returns:
         Response: A JSON response containing the content item, or a 404 error if not found.
     """
+    plans = load_json_file()
     try:
         substitution = plans['substitution'][task_id]
         content = substitution['content'][content_id]
         return jsonify(content)
     except IndexError:
         abort(404, description="Content item not found")
-
 
 @app.route("/api/healthcheck", methods=["GET"])
 def healthcheck():
@@ -134,7 +137,6 @@ def healthcheck():
         dict: Health status message.
     """
     return {"status": "success", "message": "Flask API for DSBMobile data"}
-
 
 if __name__ == '__main__':
     hostname = socket.gethostname()
