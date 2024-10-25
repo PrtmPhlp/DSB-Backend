@@ -14,7 +14,7 @@ import json
 import socket
 
 from flask import Flask, Response, abort, jsonify
-from flask_cors import CORS
+from flask_cors import CORS # pylint: disable=E0401 # type: ignore
 
 from logger import setup_logger
 
