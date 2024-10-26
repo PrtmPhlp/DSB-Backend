@@ -9,13 +9,12 @@ __Status__ = "Development"
 """
 # ------------------------------------------------
 # ! Imports
-
+import argparse
 import json
 from datetime import datetime
 from typing import Any, Dict, List
 
 from logger import setup_logger
-from scraper import get_args
 
 # Initialize logger
 logger = setup_logger(__name__, 10)
@@ -104,7 +103,7 @@ def fill_json_template(json_data: Dict[str, List[List[str]]], course: str) -> Di
     return output_json
 
 
-def main(input_file: str, output_file: str) -> None:
+def main(course: str, input_file: str, output_file: str) -> None:
     """
     Main function to process the JSON data and save the output.
 
@@ -112,7 +111,6 @@ def main(input_file: str, output_file: str) -> None:
         input_file (str): Path to the input JSON file.
         output_file (str): Path to the output JSON file.
     """
-    args = get_args()  # Get args from scraper
     try:
         with open(input_file, 'r', encoding='utf-8') as file:
             json_data: Dict[str, List[List[str]]] = json.load(file)
@@ -123,7 +121,7 @@ def main(input_file: str, output_file: str) -> None:
         logger.error("Error decoding JSON from the file '%s'.", input_file)
         return
 
-    filled_json = fill_json_template(json_data, args.course)
+    filled_json = fill_json_template(json_data, course)
 
     try:
         with open(output_file, 'w', encoding='utf-8') as file:
@@ -137,6 +135,9 @@ def main(input_file: str, output_file: str) -> None:
 
 # Example usage
 if __name__ == "__main__":
-    main('json/scraped.json', 'json/formatted.json')
+    # DEFAULT VALUES
+    INPUT_FILE = "json/scraped.json"
+    default_args = argparse.Namespace(course='MSS12', output_dir='json/formatted.json')
+    main(default_args.course, INPUT_FILE, default_args.output_dir)
     # from os import system # type: ignore
     # system("cat json/formatted.json | jq") # type: ignore

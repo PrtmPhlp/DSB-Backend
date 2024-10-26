@@ -12,9 +12,11 @@ __Status__ = "Development"
 
 import json
 import socket
-
-from flask import Flask, Response, abort, jsonify, current_app
+from flask import Flask, Response, abort, jsonify, request
 from flask_cors import CORS # pylint: disable=E0401 # type: ignore
+from flask_jwt_extended import JWTManager, jwt_required, create_access_token
+from werkzeug.security import generate_password_hash, check_password_hash
+import os
 
 from logger import setup_logger
 
@@ -22,7 +24,16 @@ from logger import setup_logger
 logger = setup_logger(__name__)
 
 app = Flask(__name__)
-CORS(app)  # This enables CORS for all routes
+CORS(app, resources={r"/*": {"origins": "*"}})
+
+# Setup the Flask-JWT-Extended extension
+app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'your-secret-keysädaöfkjsäöadlfk')  # Change this!
+jwt = JWTManager(app)
+
+# Mock user database (replace with a real database in production)
+users = {
+    "274583": generate_password_hash("johann")
+}
 
 def load_json_file():
     """
@@ -79,7 +90,31 @@ def hello_world() -> Response:
     """
     return Response(man_page, mimetype='text/html')
 
+@app.route('/login', methods=['POST'])
+def login():
+    """
+    Authenticate user and return JWT token.
+
+    Returns:
+        dict: JWT access token or error message.
+    """
+    if not request.is_json:
+        return jsonify({"msg": "Missing JSON in request"}), 400
+
+    username = request.json.get('username', None)
+    password = request.json.get('password', None)
+
+    if not username or not password:
+        return jsonify({"msg": "Missing username or password"}), 400
+
+    if username not in users or not check_password_hash(users[username], password):
+        return jsonify({"msg": "Bad username or password"}), 401
+
+    access_token = create_access_token(identity=username)
+    return jsonify(access_token=access_token), 200
+
 @app.route('/api/', methods=['GET'])
+@jwt_required()
 def get_plans() -> Response:
     """
     Retrieve all plans.
@@ -91,6 +126,7 @@ def get_plans() -> Response:
     return jsonify(plans)
 
 @app.route('/api/<int:task_id>/', methods=['GET'])
+@jwt_required()
 def get_plan(task_id: int) -> Response:
     """
     Retrieve a single substitution entry by its index.
@@ -109,6 +145,7 @@ def get_plan(task_id: int) -> Response:
         abort(404, description="Substitution entry not found")
 
 @app.route('/api/<int:task_id>/<int:content_id>/', methods=['GET'])
+@jwt_required()
 def get_content(task_id: int, content_id: int) -> Response:
     """
     Retrieve a specific content item from a substitution entry.
