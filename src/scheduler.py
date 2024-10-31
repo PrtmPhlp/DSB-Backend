@@ -48,7 +48,8 @@ def main():
     task()
 
     # Schedule the task to run every 30 seconds
-    schedule.every(30).seconds.do(task)
+    # schedule.every(30).seconds.do(task)
+    schedule.every(5).minutes.do(task)
 
     # Run the scheduled tasks indefinitely
     try:
