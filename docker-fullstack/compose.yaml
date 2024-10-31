@@ -3,7 +3,6 @@ services:
     container_name: dsb-frontend
     image: ghcr.io/prtmphlp/dsb-frontend:latest
     restart: unless-stopped
-    profiles: ["dsb"]
     #build: .
     environment:
       #- NEXT_PUBLIC_API_URL=https://api.home.pertermann.de
@@ -24,7 +23,6 @@ services:
     build: ..
     container_name: dsb-scraper
     restart: unless-stopped
-    profiles: ["dsb"]
     ports:
       - "5555:5555"
     environment:
