@@ -8,3 +8,4 @@ testing.py
 .env
 Archive/backup/*
 log.txt
+*/json

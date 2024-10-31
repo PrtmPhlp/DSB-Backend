@@ -17,7 +17,7 @@ from typing import Any, Dict, List
 from logger import setup_logger
 
 # Initialize logger
-logger = setup_logger(__name__, 10)
+logger = setup_logger(__name__)
 
 # Constants
 WEEKDAY_MAP: Dict[str, int] = {

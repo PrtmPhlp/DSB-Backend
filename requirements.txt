@@ -10,6 +10,8 @@ charset-normalizer==3.3.2
 click==8.1.7
 coloredlogs==15.0.1
 Flask==3.0.3
+Flask-Cors==5.0.0
+Flask-JWT-Extended==4.6.0
 frozenlist==1.4.1
 humanfriendly==10.0
 idna==3.8
@@ -23,6 +25,7 @@ mdurl==0.1.2
 multidict==6.0.5
 pydsb==2.3.0
 Pygments==2.18.0
+PyJWT==2.9.0
 python-dotenv==1.0.1
 PyYAML==6.0.1
 referencing==0.35.1
@@ -33,5 +36,6 @@ rpds-py==0.20.0
 schedule==1.2.2
 soupsieve==2.5
 urllib3==2.2.2
+waitress==3.0.1
 Werkzeug==3.0.4
 yarl==1.9.4

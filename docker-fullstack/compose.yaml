@@ -1,0 +1,53 @@
+services:
+  dsb-frontend:
+    container_name: dsb-frontend
+    image: ghcr.io/prtmphlp/dsb-frontend:latest
+    #build: .
+    environment:
+      #- NEXT_PUBLIC_API_URL=https://api.home.pertermann.de
+      - NEXT_PUBLIC_API_URL=http://localhost:5555
+    ports:
+      - 3003:3000
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dsb.rule=Host(`dsb.pertermann.de`)"
+      - "traefik.http.routers.dsb.entrypoints=https"
+      - "traefik.http.routers.dsb.tls=true"
+      - "traefik.http.routers.dsb.middlewares=authelia@docker"
+    networks:
+      - proxy
+
+  dsb-scraper:
+    build: ..
+    container_name: dsb-scraper
+    restart: unless-stopped
+    ports:
+      - "5555:5555"
+    environment:
+      - DSB_USERNAME=${DSB_USERNAME}
+      - DSB_PASSWORD=${DSB_PASSWORD}
+    volumes:
+      - ./json:/app/json
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5555/api/healthcheck"]
+      interval: 1m
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api.rule=Host(`api.pertermann.de`)"
+      - "traefik.http.routers.api.entrypoints=https"
+      - "traefik.http.routers.api.tls=true"
+      - "traefik.http.routers.api.middlewares=authelia@docker"
+
+    networks:
+      - proxy
+
+volumes:
+  json:
+
+networks:
+  proxy:
+    external: true

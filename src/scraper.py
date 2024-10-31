@@ -20,30 +20,12 @@ from urllib.parse import urljoin
 import requests
 from bs4 import BeautifulSoup
 from dotenv import dotenv_values
-from rich_argparse import RawDescriptionRichHelpFormatter
 
 from logger import setup_logger
 from PyDSB import PyDSB
 
 # Initialize logger
 logger = setup_logger(__name__)
-
-
-def setup_logging(verbose) -> None:
-    """
-    Set up logging level based on parsed command-line arguments.
-
-    Args:
-        args (argparse.Namespace): An argparse.Namespace containing the verbosity level.
-    """
-    if verbose:
-        logging_level = logging.DEBUG
-        logging.getLogger("urllib3").setLevel(logging.WARNING)
-    else:
-        logging_level = logging.INFO
-
-    # Configure the root logger
-    logger.setLevel(level=logging_level)
 
 
 def load_env_credentials() -> dict[str, str | None]:
@@ -184,6 +166,9 @@ def get_plans(base_url: str) -> dict[str, str]:
     Returns:
         dict: A dictionary mapping plan identifiers to their URLs.
             e.g. {'1_Montag': 'https://light.dsbcontrol.de/DSBlightWebsite/Data/{id}/V_DC_001.html'}
+
+    Raises:
+        ValueError: If the expected HTML structure is not found.
     """
     logger.info("Extracting Posts")
     soup = request_url_data(base_url)
@@ -226,13 +211,20 @@ def get_plans(base_url: str) -> dict[str, str]:
 
 def main_scraping(url: str, course: str) -> tuple[list[list[str]], bool]:
     """
-    Scrape a given URL for specific table data related to 'course'.
+    Scrape a given URL for specific table data related to a course.
 
     Args:
         url (str): The URL to scrape data from.
+        course (str): The course identifier to search for in the table.
 
     Returns:
-        list: A list of lists containing the scraped table data.
+        tuple[list[list[str]], bool]: A tuple containing:
+            - A list of lists containing the scraped table data for the course
+            - A boolean indicating whether the course was found
+
+    Raises:
+        ValueError: If the table element is not found in the HTML.
+        Exception: If any other error occurs during HTML processing.
     """
 
     soup = request_url_data(url)
@@ -253,13 +245,15 @@ def main_scraping(url: str, course: str) -> tuple[list[list[str]], bool]:
                 total_replacements.append(replacement)
 
                 next_row = row.find_next_sibling("tr")
+                count = 1
                 while next_row and "\xa0" in next_row.find("td").get_text():
-                    logger.debug("New row found!")
+                    logger.debug("New row found! %s", count)
                     replacement = [
                         col.get_text().strip() for col in next_row.find_all("td")
                     ]
                     total_replacements.append(replacement)
                     next_row = next_row.find_next_sibling("tr")
+                    count += 1
     except Exception as e:
         logger.error("Error processing HTML: %s", e)
         raise
@@ -270,14 +264,18 @@ def main_scraping(url: str, course: str) -> tuple[list[list[str]], bool]:
 def run_main_scraping(posts_dict: dict[str, str],
                       course: str | None, print_output: bool) -> dict[str, list[list[str]]]:
     """
-    Execute the main_scraping function for each URL in the given dictionary and update the
-    dictionary with the results.
+    Execute the main_scraping function for each URL in the given dictionary.
 
     Args:
-        posts_dict (dict): A dictionary mapping identifiers to URLs.
+        posts_dict (dict[str, str]): A dictionary mapping identifiers to URLs.
+        course (str | None): The course identifier to search for in the tables.
+        print_output (bool): Whether to print the scraped data to console.
 
     Returns:
-        dict: A dictionary mapping identifiers to the results of the scraping process.
+        dict[str, list[list[str]]]: Dictionary mapping identifiers to the scraped data for each URL.
+
+    Raises:
+        ValueError: If the course argument is None.
     """
     if course is None:
         logger.error("Course argument must have a string value if provided")
@@ -290,7 +288,7 @@ def run_main_scraping(posts_dict: dict[str, str],
             scraped_data, success = main_scraping(url, course)
             scrape_dict[key] = scraped_data
             if success:
-                logger.info("%s: found %s!", key, course)
+                logger.info("%s: found %s entries!", key, course)
             else:
                 logger.warning("%s: class %s not found!", key, course)
         except Exception as e:  # pylint: disable=W0718
@@ -305,33 +303,56 @@ def run_main_scraping(posts_dict: dict[str, str],
         )
     return scrape_dict
 
+# TODO: also check json/formatted.json
 
-def main(args) -> None:
+
+def save_data_if_changed(new_data: dict, file_path: str) -> bool:
+    """
+    Compare new data with existing file content and save if different.
+    """
+    try:
+        with open(file_path, 'r', encoding='utf8') as file:
+            existing_data = json.load(file)
+    except (FileNotFoundError, json.JSONDecodeError):
+        existing_data = None
+
+    if existing_data == new_data:
+        logger.debug("No changes detected in scraped data. Aborting.")
+        return False
+
+    with open(file_path, "w", encoding="utf8") as file_json:
+        json.dump(new_data, file_json, ensure_ascii=False)
+    logger.info("Scraped data saved to %s", file_path)
+    return True
+
+
+def main(args: argparse.Namespace) -> bool:
     """
     Main function that orchestrates the scraping process.
-
-    Retrieves the API URL using secret credentials, fetches plans from the API,
-    runs the main scraping process on the fetched data, logs the results,
-    and saves the scraped data to a JSON file.
     """
-    setup_logging(args.verbose)
-
+    # Setup logger
+    setup_logger(__name__, logging.DEBUG if args.verbose else logging.INFO)
     logger.info("Script started successfully")
 
+    # Load environment credentials
     env_credentials: dict[str, str | None] = load_env_credentials()
 
+    # Prepare API URL
     base_url: str = prepare_api_url(env_credentials)
 
+    # Get plans
     posts_dict: dict[str, str] = get_plans(base_url)
 
+    # Scrape data
     class_dict: dict[str, list[list[str]]] = run_main_scraping(
         posts_dict, args.course, args.print_output)
 
-    file_path: str = "json/scraped.json"
-    with open(file_path, "w", encoding="utf8") as file_json:
-        json.dump(class_dict, file_json, ensure_ascii=False)
+    # Save data if changed
+    return save_data_if_changed(class_dict, args.raw_file)
+
 
 if __name__ == "__main__":
     # DEFAULT VALUES
-    default_args = argparse.Namespace(verbose=False, course='MSS12', print_output=False, output_dir='json/formatted.json')
+    default_args = argparse.Namespace(verbose=False, course='MSS12',
+                                      print_output=False, raw_file='json/scraped.json')
     main(default_args)
