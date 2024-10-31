@@ -5,14 +5,17 @@ Example for runner as a module
 """
 
 import argparse
+
 from rich_argparse import RawDescriptionRichHelpFormatter
 
-import scraper
 import format_json
 import schema
+import scraper
+from logger import setup_logger
 
-INPUT_FILE = "json/scraped.json"
-SCHEMA_FILE = "json/schema.json"
+# DEFAULT VALUES
+RAW_FILE = "json/scraped.json"
+SCHEMA_FILE = "schema/schema.json"
 
 
 def parse_args() -> argparse.Namespace:
@@ -48,12 +51,41 @@ def parse_args() -> argparse.Namespace:
         "-o", "--output-dir", type=str, nargs="?", default="json/formatted.json",
         help="Output directory for JSON files. Default: json/formatted.json"
     )
+    parser.add_argument(
+        "-d", "--development", action="store_true", default=False,
+        help="Dont exit when no changes are detected"
+    )
     return parser.parse_args()
 
 
-args: argparse.Namespace = parse_args()
-# print(args)
+def main() -> bool:
+    """Main function that orchestrates the scraping and processing of DSB data."""
+    logger = setup_logger(__name__)
 
-scraper.main(args)
-format_json.main(args.course, INPUT_FILE, args.output_dir)
-schema.main(SCHEMA_FILE, args.output_dir)
+    # Parse arguments
+    args: argparse.Namespace = parse_args()
+    args.raw_file = RAW_FILE
+    args.schema_file = SCHEMA_FILE
+    logger.debug("Parsed arguments: %s", args)
+
+    if args.verbose:
+        logger.debug("Verbose mode enabled")
+
+    # Scrape data
+    changes_detected = scraper.main(args)
+
+    if not changes_detected and not args.development:
+        logger.info("No changes detected in scraped data. Exiting...")
+        return True
+
+    # Format data
+    format_json.main(args.course, args.raw_file, args.output_dir)
+
+    # Validate data
+    schema.main(args.schema_file, args.output_dir)
+
+    return True
+
+
+if __name__ == "__main__":
+    main()
