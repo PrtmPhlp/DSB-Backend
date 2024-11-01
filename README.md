@@ -1,56 +1,97 @@
 # DSBMobile Webscraper
 
+A Python-based web scraper for DSBMobile, designed to fetch and process representation plans
+
+
 [![CodeQL](https://github.com/PrtmPhlp/DSBMobile/actions/workflows/codeql.yml/badge.svg)](https://github.com/PrtmPhlp/DSBMobile/actions/workflows/codeql.yml)
 
-This project is focused on retrieving existing representation plans, processing them with sorting mechanisms, abbreviation replacements, and other modifications, and exporting them in a format suitable for further processing.
+This project is focused on retrieving existing representation plans, processing them and exporting them in a format suitable for further processing.
 
-Additionally, this project aims to visualize the gathered data on an external Next.js / Static Website to provide a personalized user experience. The project is currently highly tailored to integrate with the [DSBMobile](https://www.dsbmobile.de/) system and the [DAVINCI](https://davinci.stueber.de/) layout scheme by [Stüber Systems](https://www.stueber.de/).
+Additionally, this project aims to visualize the gathered data on an external Next.js Webpage to provide a personalized user experience. The project is currently highly tailored to integrate with the [DSBMobile](https://www.dsbmobile.de/) system and the [DAVINCI](https://davinci.stueber.de/) layout scheme by [Stüber Systems](https://www.stueber.de/).
 
 
 > [!NOTE]
-> Link to [frontend](https://github.com/prtmphlp/dsb-frontend)
-
----
-
-> [!WARNING]
-> The following steps may not be entirely accurate, as the project is still under heavy active development.
-
-The process involves the following steps:
-
-1. Authenticating through the API.
-2. Retrieving all currently available representation plans.
-3. Fetching data and exporting **only** the requested course in a markup format, such as _(currently)_ JSON, a Python list, or possibly in the future, the [PKL](https://pkl-lang.org/index.html) markup format.
-4. Creating a second processed version for easier readability, with the following modifications:
-    - Replacing teacher abbreviations.
-    - Replacing subject abbreviations.
-    - ...
-5. Exporting data to either a _Static Website_ **or** a _Next.js Website_, utilizing a _real_ backend (with features like request handling, spam protection, on-load data fetching, etc.).
-
+> Link to NEXT.js [frontend](https://github.com/prtmphlp/dsb-frontend)
 
 ## Usage
 
+There are three main ways to use this project:
+
+1. **Recommended:** As a Docker container / stack integrated with the [frontend](https://github.com/prtmphlp/dsb-frontend)
+2. As a standalone Python script
+3. As a Flask API
+
+## 🐳 Docker
+
 > [!WARNING]
-> This project is still under active development and may not be ready for use yet.
+> Currently, the Docker image is only available for ARM64 architecture.
+
+There are three ways to run the Docker container:
+
+### 1. Running the fullstack Docker Compose stack:
+
+Clone the repository and create a `.env` file with your credentials:
+
+```bash
+cp .env.sample .env
+```
+
+fill in the `DSB_USERNAME` and `DSB_PASSWORD` fields with your credentials.
+
+and run:
+
+```bash
+docker compose up -d
+```
+
+this will build the dsb-scraper image and download the dsb-frontend image from my provided [Docker Image](https://github.com/users/PrtmPhlp/packages/container/package/dsb-frontend).
+
+### 2. Running the fullstack Docker Compose stack but building all images yourself:
+
+If you want to build all images yourself, you can do so by following this folder structure:
+
+```
+fullstack
+├── backend (this repository)
+└── frontend (https://github.com/prtmphlp/dsb-frontend)
+```
+
+and running from the `backend` folder:
+
+```bash
+docker compose up -d --build
+```
+
+### 3. Running the backend only:
+
+```bash
+docker compose -f compose-backend.yaml up -d
+```
+
+## Running the standalone Python Script
+
+<details>
+<summary>Click to expand</summary>
 
 ```console
 $ python src/scraper.py -h
 
 Usage: python src/scraper.py [-h] [-v] [-c [COURSE]] [-p] [--version]
 
-     ___      ___  ___ ___
-    | _ \_  _|   \/ __| _ )
-    |  _/ || | |) \__ \ _ \
-    |_|  \_, |___/|___/___/
-         |__/
+	 ___      ___  ___ ___
+	| _ \_  _|   \/ __| _ )
+	|  _/ || | |) \__ \ _ \
+	|_|  \_, |___/|___/___/
+		 |__/
 
 This script scrapes data from dsbmobile.com to retrieve class replacements.
 
 Options:
   -h, --help            show this help message and exit
   -v, --verbose         Set the verbosity level: 0 for CRITICAL, 1 for INFO, 2
-                        for DEBUG
+						for DEBUG
   -c, --course [COURSE]
-                        Select the course to scrape. Default: MSS12
+						Select the course to scrape. Default: MSS12
   -p, --print-output    Print output to console
   --version             show program's version number and exit
 
@@ -58,42 +99,42 @@ Options:
 
 ### Prerequisites
 
-Before you begin, ensure you have Python installed on your machine. You can download it from the official [Python website](https://www.python.org/downloads/). This project was developed using Python 3.12.4, so no guarantees are made for other versions.
+- Python 3.12.4 (maybe other versions work, but this is what I used to develop this project)
 
 ### Setting Up the Virtual Environment
 
 1. **Clone the repository**:
 
-    ```bash
-    git clone https://github.com/PrtmPhlp/DSBMobile.git
-    cd DSBMobile
-    ```
+	```bash
+	git clone https://github.com/PrtmPhlp/DSBMobile.git
+	cd DSBMobile
+	```
 
 2. **Create a virtual environment**:
 
-    ```bash
-    python3 -m venv .venv
-    ```
+	```bash
+	python3 -m venv .venv
+	```
 
 3. **Activate the virtual environment**:
 
-    On macOS and Linux:
-    ```bash
-    source .venv/bin/activate
-    ```
+	On macOS and Linux:
+	```bash
+	source .venv/bin/activate
+	```
 
-    On Windows:
-    ```bash
-    .\.venv\Scripts\activate
-    ```
+	On Windows:
+	```bash
+	.\.venv\Scripts\activate
+	```
 
 4. **Install the required packages**:
 
-    Ensure you are in the project directory where the `requirements.txt` file is located, then run:
+	Ensure you are in the project directory where the `requirements.txt` file is located, then run:
 
-    ```bash
-    pip install -r requirements.txt
-    ```
+	```bash
+	pip install -r requirements.txt
+	```
 
 ### Secrets Management
 
@@ -141,6 +182,8 @@ python src/runner.py --help
 ```
 
 ### Sample output
+<details>
+<summary>Click to expand</summary>
 
 ```json
 {
@@ -194,7 +237,14 @@ python src/runner.py --help
 	]
 }
 ```
+</details>
+</details>
 
+## Running the Flask API
+
+Setup should similar to the standalone Python script
+
+run `python src/app.py`
 
 ## Contributing
 
