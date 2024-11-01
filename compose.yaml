@@ -1,6 +1,6 @@
 services:
   dsb-scraper:
-    build: ..
+    build: .
     container_name: dsb-scraper
     restart: unless-stopped
     ports:
@@ -19,4 +19,3 @@ services:
 
 volumes:
   json:
-# TODO: schema and schema-sample dont get copied through
