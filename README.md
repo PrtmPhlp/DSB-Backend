@@ -8,7 +8,7 @@ Additionally, this project aims to visualize the gathered data on an external Ne
 
 
 > [!NOTE]
-> Link to the [frontend](https://github.com/prtmphlp/dsb-frontend)
+> Link to [frontend](https://github.com/prtmphlp/dsb-frontend)
 
 ---
 
