@@ -1,0 +1,21 @@
+services:
+  dsb-scraper:
+    build: .
+    container_name: dsb-scraper
+    restart: unless-stopped
+    ports:
+      - "5555:5555"
+    environment:
+      - DSB_USERNAME=${DSB_USERNAME}
+      - DSB_PASSWORD=${DSB_PASSWORD}
+    volumes:
+      - ./json:/app/json
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5555/api/healthcheck"]
+      interval: 1m
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  json:
