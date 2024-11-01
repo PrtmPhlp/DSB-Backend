@@ -6,7 +6,13 @@ This project is focused on retrieving existing representation plans, processing 
 
 Additionally, this project aims to visualize the gathered data on an external Next.js / Static Website to provide a personalized user experience. The project is currently highly tailored to integrate with the [DSBMobile](https://www.dsbmobile.de/) system and the [DAVINCI](https://davinci.stueber.de/) layout scheme by [Stüber Systems](https://www.stueber.de/).
 
+
 > [!NOTE]
+> Link to the [frontend](https://github.com/prtmphlp/dsb-frontend)
+
+---
+
+> [!WARNING]
 > The following steps may not be entirely accurate, as the project is still under heavy active development.
 
 The process involves the following steps:
