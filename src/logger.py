@@ -45,10 +45,11 @@ def setup_logger(name: str, level=None) -> logging.Logger:
         level=level,
     )
 
+    #! Logs show duplicate lines in Docker
     # Add stdout handler if needed
-    if not sys.stdout.isatty():
-        handler = logging.StreamHandler(sys.stdout)
-        handler.setLevel(level)  # Set handler level too
-        logger.addHandler(handler)
+    # if not sys.stdout.isatty():
+    #     handler = logging.StreamHandler(sys.stdout)
+    #     handler.setLevel(level)  # Set handler level too
+    #     logger.addHandler(handler)
 
     return logger
