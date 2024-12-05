@@ -26,6 +26,8 @@ from logger import setup_logger
 logger = setup_logger(__name__)
 
 app = Flask(__name__)
+
+# TODO: Update CORS origins
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 # Setup the Flask-JWT-Extended extension
@@ -38,6 +40,19 @@ users = {
     "274583": generate_password_hash("johann")
 }
 
+from flask_swagger_ui import get_swaggerui_blueprint
+
+SWAGGER_URL="/swagger"
+API_URL="/static/swagger.json"
+
+swagger_ui_blueprint = get_swaggerui_blueprint(
+    SWAGGER_URL,
+    API_URL,
+    config={
+        'app_name': 'Access API'
+    }
+)
+app.register_blueprint(swagger_ui_blueprint, url_prefix=SWAGGER_URL)
 
 def load_json_file():
     """
@@ -112,11 +127,13 @@ def login():
     Returns:
         dict: JWT access token or error message.
     """
-    if not request.is_json:
-        return jsonify({"msg": "Missing JSON in request"}), 400
+    # Check if the request is JSON or form data
+    if not (request.is_json or request.form):
+        return jsonify({"msg": "Missing JSON or form data in request"}), 400
 
-    username = request.json.get('username', None)  # type: ignore[reportOptionalMemberAccess]
-    password = request.json.get('password', None)  # type: ignore[reportOptionalMemberAccess]
+    # Use form data if available, otherwise fallback to JSON
+    username = request.form.get('username') if request.form else request.json.get('username', None)
+    password = request.form.get('password') if request.form else request.json.get('password', None)
 
     if not username or not password:
         return jsonify({"msg": "Missing username or password"}), 400
@@ -195,7 +212,10 @@ def healthcheck():
 
 
 if __name__ == '__main__':
-    hostname = socket.gethostname()
-    local_ip = socket.gethostbyname(hostname)
-    print(f"Server running on http://{local_ip}:5555")
-    serve(app, host='0.0.0.0', port=5555, _quiet=False)
+    DEVELOPMENT = True
+    if DEVELOPMENT:
+        app.run(host='0.0.0.0', port=5555, debug=True)
+    else:
+        local_ip = socket.gethostbyname(socket.gethostname())
+        print(f"Server running on http://{local_ip}:5555")
+        serve(app, host='0.0.0.0', port=5555, _quiet=False)

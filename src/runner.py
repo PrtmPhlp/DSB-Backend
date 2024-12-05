@@ -39,7 +39,7 @@ def parse_args() -> argparse.Namespace:
         # Ensures raw formatting for the art
         formatter_class=RawDescriptionRichHelpFormatter)
     parser.add_argument(
-        "--version", action="version", version="[argparse.prog]%(prog)s[/] version [i]1.1.0[/]"
+        "--version", action="version", version="[argparse.prog]%(prog)s[/] version [i]1.2.0[/]"
     )
     parser.add_argument("-v", "--verbose", action="store_true",
                         help="Set verbosity level to DEBUG")

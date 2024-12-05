@@ -1,0 +1,22 @@
+meta {
+  name: api
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{url}}/api/
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+tests {
+  test("Return 200", function() {
+    const data = res.getBody();
+    expect(res.getStatus()).to.equal(200);
+  });
+}

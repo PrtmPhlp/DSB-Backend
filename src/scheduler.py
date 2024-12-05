@@ -30,7 +30,7 @@ def run_flask_app():
     """Run the Flask application."""
     hostname = socket.gethostname()
     local_ip = socket.gethostbyname(hostname)
-    print(f"Server running on http://{local_ip}:5555")
+    print(f"PRODUCTION: Server running on http://{local_ip}:5555")
     serve(app.app, host='0.0.0.0', port=5555)
 
 
