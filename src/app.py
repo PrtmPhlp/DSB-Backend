@@ -28,7 +28,7 @@ logger = setup_logger(__name__)
 app = Flask(__name__)
 
 # TODO: Update CORS origins
-CORS(app, resources={r"/*": {"origins": "*"}})
+CORS(app, resources={r"/*": {"origins": "https://home.pertermann.de"}})
 
 # Setup the Flask-JWT-Extended extension
 app.config['JWT_SECRET_KEY'] = os.environ.get(
@@ -62,7 +62,8 @@ def load_json_file():
         dict: Loaded JSON data or empty dict with 'substitution' key if error occurs.
     """
     try:
-        with open('json/formatted.json', 'r', encoding='utf-8') as schema_file:
+        with open('json/änderung.json', 'r', encoding='utf-8') as schema_file:
+        # with open('json/formatted.json', 'r', encoding='utf-8') as schema_file:
             return json.load(schema_file)
     except FileNotFoundError:
         logger.info("Error: The file 'json/formatted.json' was not found.")

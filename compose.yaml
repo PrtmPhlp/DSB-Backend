@@ -23,6 +23,9 @@ services:
     build: .
     container_name: dsb-scraper
     restart: unless-stopped
+    logging:
+      options:
+        max-size: 50m
     ports:
       - "5555:5555"
     environment:
@@ -52,3 +55,4 @@ volumes:
 networks:
   proxy:
     external: true
+
