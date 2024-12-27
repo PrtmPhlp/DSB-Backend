@@ -17,7 +17,10 @@ import runner
 def task():
     """Execute the main runner script and log its execution."""
     print("Executing the script...")
-    runner.main()
+    try:
+        runner.main()
+    except Exception as e:
+        print(f"ERROR: {e}")
 
 
 def signal_handler(*_):
