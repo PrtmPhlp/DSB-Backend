@@ -14,21 +14,78 @@ import json
 import os
 import socket
 
-from flask import Flask, Response, abort, jsonify, request
-from flask_cors import CORS  # pylint: disable=E0401 # type: ignore
+from flask import Flask, Response, abort, jsonify, make_response, request
+from flask_cors import CORS
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required
-from werkzeug.security import check_password_hash, generate_password_hash
 from waitress import serve
+from werkzeug.security import check_password_hash, generate_password_hash
 
 from logger import setup_logger
 
 # Initialize logger
 logger = setup_logger(__name__)
 
+
 app = Flask(__name__)
 
-# TODO: Update CORS origins
-CORS(app, resources={r"/*": {"origins": "https://home.pertermann.de"}})
+app = Flask(__name__)
+
+# Simplified CORS configuration
+CORS(app)
+
+
+@app.after_request
+def cors_after_request(response):
+    # Handle preflight requests specially
+    if request.method == 'OPTIONS':
+        response = make_response()
+        response.headers.add('Access-Control-Allow-Origin',
+                             request.headers.get('Origin', '*'))
+        response.headers.add('Access-Control-Allow-Headers',
+                             'Content-Type, Authorization')
+        response.headers.add('Access-Control-Allow-Methods',
+                             'GET, POST, PUT, DELETE, OPTIONS')
+        response.headers.add('Access-Control-Allow-Credentials', 'true')
+        response.headers.add('Access-Control-Max-Age', '3600')
+        response.status_code = 204
+        return response
+
+    # For non-OPTIONS requests
+    origin = request.headers.get('Origin')
+    if origin:
+        response.headers.add('Access-Control-Allow-Origin', origin)
+        response.headers.add('Access-Control-Allow-Credentials', 'true')
+
+    return response
+
+
+@app.route('/login', methods=['OPTIONS', 'POST'])
+def login():
+    """
+    Authenticate user and return JWT token.
+    """
+    # print(f"Received {request.method} request to {request.path} with headers: {dict(request.headers)}")
+    # The OPTIONS handling is now done by the after_request handler
+    if request.method == 'OPTIONS':
+        return make_response(), 204
+
+    # Rest of the login logic
+    if not (request.is_json or request.form):
+        return jsonify({"msg": "Missing JSON or form data in request"}), 400
+    username = request.form.get(
+        'username') if request.form else request.json.get('username', None)
+    password = request.form.get(
+        'password') if request.form else request.json.get('password', None)
+
+    if not username or not password:
+        return jsonify({"msg": "Missing username or password"}), 400
+
+    if username not in users or not check_password_hash(users[username], password):
+        return jsonify({"msg": "Bad username or password"}), 401
+
+    access_token = create_access_token(identity=username)
+    return jsonify(access_token=access_token), 200
+
 
 # Setup the Flask-JWT-Extended extension
 app.config['JWT_SECRET_KEY'] = os.environ.get(
@@ -40,19 +97,6 @@ users = {
     "274583": generate_password_hash("johann")
 }
 
-from flask_swagger_ui import get_swaggerui_blueprint
-
-SWAGGER_URL="/swagger"
-API_URL="/static/swagger.json"
-
-swagger_ui_blueprint = get_swaggerui_blueprint(
-    SWAGGER_URL,
-    API_URL,
-    config={
-        'app_name': 'Access API'
-    }
-)
-app.register_blueprint(swagger_ui_blueprint, url_prefix=SWAGGER_URL)
 
 def load_json_file():
     """
@@ -62,8 +106,7 @@ def load_json_file():
         dict: Loaded JSON data or empty dict with 'substitution' key if error occurs.
     """
     try:
-        with open('json/änderung.json', 'r', encoding='utf-8') as schema_file:
-        # with open('json/formatted.json', 'r', encoding='utf-8') as schema_file:
+        with open('json/formatted.json', 'r', encoding='utf-8') as schema_file:
             return json.load(schema_file)
     except FileNotFoundError:
         logger.info("Error: The file 'json/formatted.json' was not found.")
@@ -118,32 +161,6 @@ def hello_world() -> Response:
     <p>Status: Development</p>
     """
     return Response(man_page, mimetype='text/html')
-
-
-@app.route('/login', methods=['POST'])
-def login():
-    """
-    Authenticate user and return JWT token.
-
-    Returns:
-        dict: JWT access token or error message.
-    """
-    # Check if the request is JSON or form data
-    if not (request.is_json or request.form):
-        return jsonify({"msg": "Missing JSON or form data in request"}), 400
-
-    # Use form data if available, otherwise fallback to JSON
-    username = request.form.get('username') if request.form else request.json.get('username', None)
-    password = request.form.get('password') if request.form else request.json.get('password', None)
-
-    if not username or not password:
-        return jsonify({"msg": "Missing username or password"}), 400
-
-    if username not in users or not check_password_hash(users[username], password):
-        return jsonify({"msg": "Bad username or password"}), 401
-
-    access_token = create_access_token(identity=username)
-    return jsonify(access_token=access_token), 200
 
 
 @app.route('/api/', methods=['GET'])
