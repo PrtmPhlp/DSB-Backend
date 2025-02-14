@@ -19,7 +19,7 @@ Dependencies:
   - coloredlogs
   - PyDSB
   - jsonschema
-  - (Your logger_setup.py in the same project)
+  - ./logger_setup.py
 """
 
 import argparse
@@ -447,9 +447,9 @@ def replace_teacher_codes(data: Dict[str, Any], teacher_mapping: Dict[str, Dict[
     teacher_mapping expected to be dict:
       {
         "Ar": {
-           "Name": "Carolin Arndt",
-           "Nachname": "Arndt",
-           "Vorname": "Carolin",
+           "Name": "Peter Muster",
+           "Nachname": "Muster",
+           "Vorname": "Peter",
            "Fächer": "M, Mu"
         },
         ...
@@ -470,7 +470,7 @@ def replace_teacher_codes(data: Dict[str, Any], teacher_mapping: Dict[str, Dict[
 
 
 # -----------------------------------------------------------
-# 7) CLI + Main Orchestrator 
+# 7) CLI + Main Orchestrator
 # -----------------------------------------------------------
 def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
