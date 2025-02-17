@@ -35,7 +35,7 @@ for row in table.find_all('tr')[1:]:
         }
 
 # Dictionary als JSON in Datei speichern
-with open('json/lehrer.json', 'w', encoding='utf-8') as json_file:
+with open('schema/lehrer.json', 'w', encoding='utf-8') as json_file:
     json.dump(lehrer_dict, json_file, ensure_ascii=False, indent=4)
 
 print('Lehrerdaten wurden erfolgreich in "lehrer.json" gespeichert.')
