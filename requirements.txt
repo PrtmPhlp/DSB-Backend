@@ -40,3 +40,4 @@ waitress==3.0.1
 Werkzeug==3.0.4
 yarl==1.9.4
 flask_swagger_ui==4.11.1
+flask_limiter==3.10.1

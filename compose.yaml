@@ -3,14 +3,12 @@ services:
     container_name: dsb-frontend
     image: ghcr.io/prtmphlp/dsb-frontend:latest
     restart: unless-stopped
-    build: ../frontend/
+    #build: ../frontend/
     environment:
       #- NEXT_PUBLIC_API_URL=https://api.home.pertermann.de
       - NEXT_PUBLIC_API_URL=http://localhost:5555
     ports:
       - 3003:3000
-    networks:
-      - proxy
 
   dsb-scraper:
     build: .
@@ -29,13 +27,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
-    networks:
-      - proxy
 
 volumes:
   json:
-
-networks:
-  proxy:
-    external: true
-
