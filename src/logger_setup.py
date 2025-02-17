@@ -11,6 +11,7 @@ Usage:
 import logging
 import coloredlogs
 
+
 class LoggerSetup:
     """
     A helper class to configure Python logging with colored logs.
