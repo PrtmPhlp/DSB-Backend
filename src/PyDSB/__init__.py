@@ -5,13 +5,15 @@ PyDSB Module
 This module provides classes and methods for interacting with DSB mobile API.
 """
 
-import logging
 import sys
 import requests
 
+from logger_setup import LoggerSetup
+
 BASE_URL = "https://mobileapi.dsbcontrol.de"
 
-logger = logging.getLogger(__name__)
+# Use the same logger style as the rest of your code
+logger = LoggerSetup.setup_logger(__name__)
 
 
 class PyDSB:
@@ -38,7 +40,7 @@ class PyDSB:
             Retrieves the list of postings (documents) available for the authenticated user.
     """
 
-    def __init__(self, username: str = None, password: str = None): # type: ignore
+    def __init__(self, username: str = None, password: str = None):
         """
         Initialize PyDSB with username and password to authenticate and obtain a token.
 
@@ -56,9 +58,10 @@ class PyDSB:
 
         r = requests.get(BASE_URL + "/authid", params=params, timeout=10)
 
-        if r.text == "\"\"":  # Me when http status code is always 200 :trollface:
+        if r.text == "\"\"":  # The API returns empty quotes if credentials are invalid
             logger.critical("PyDSB: Invalid Credentials!")
             sys.exit(1)
+            # Alternatively:
             # raise Exception("Invalid Credentials")
         else:
             self.token = r.text.replace("\"", "")
@@ -99,7 +102,9 @@ class PyDSB:
 
         for i in raw_news:
             news.append({
-                "title": i["Title"], "date": i["Date"], "content": i["Detail"]
+                "title": i["Title"],
+                "date": i["Date"],
+                "content": i["Detail"]
             })
 
         return news
