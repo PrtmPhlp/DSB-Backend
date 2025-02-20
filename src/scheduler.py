@@ -1,4 +1,13 @@
-"""Scheduler module for running periodic tasks using the schedule library."""
+#!/usr/bin/env python3
+# -----------------------------------------------------------
+"""
+Scheduler module for running periodic tasks using the schedule library.
+
+It:
+- Spawns the Flask server (from server.py) in a separate process
+- Executes runner.main() on a schedule
+- Handles graceful shutdown on SIGINT/SIGTERM
+"""
 
 import asyncio
 import multiprocessing
@@ -10,12 +19,17 @@ import time
 import schedule
 from waitress import serve
 
-import app
-import runner
+# Import the runner script that does the scraping/task
+import rewrite2 as runner
+# Import the server's create_app() function
+from app import create_app
 
 
 def task():
-    """Execute the main runner script and log its execution."""
+    """
+    Execute the main runner script and log its execution.
+    You can replace the print statements with actual logging if desired.
+    """
     print("Executing the script...")
     try:
         runner.main()
@@ -24,22 +38,31 @@ def task():
 
 
 def signal_handler(*_):
-    """Handle shutdown gracefully on SIGINT/SIGTERM."""
+    """
+    Handle shutdown gracefully on SIGINT/SIGTERM.
+    """
     print("Shutting down scheduler...")
     sys.exit(0)
 
 
 def run_flask_app():
-    """Run the Flask application."""
+    """
+    Create and run the Flask application in production mode with Waitress.
+    """
+    flask_app = create_app()  # create the Flask application
     hostname = socket.gethostname()
     local_ip = socket.gethostbyname(hostname)
     print(f"PRODUCTION: Server running on http://{local_ip}:5555")
-    serve(app.app, host='0.0.0.0', port=5555)
+    serve(flask_app, host='0.0.0.0', port=5555)
 
 
 def main():
-    """Initialize and run the scheduler."""
-    # Set up signal handlers
+    """
+    Initialize and run the scheduler.
+    - Start the Flask app in a separate process
+    - Schedule periodic tasks
+    """
+    # Set up signal handlers for graceful shutdown
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
 
@@ -50,8 +73,7 @@ def main():
     # Execute immediately upon startup
     task()
 
-    # Schedule the task to run every 30 seconds
-    # schedule.every(30).seconds.do(task)
+    # Example: Schedule the task to run every 5 minutes
     schedule.every(5).minutes.do(task)
 
     # Run the scheduled tasks indefinitely
@@ -60,7 +82,7 @@ def main():
             schedule.run_pending()
             time.sleep(5)
     except Exception as e:  # pylint: disable=broad-exception-caught
-        print("Error in scheduler: %s", e)
+        print(f"Error in scheduler: {e}")
         flask_process.terminate()
         sys.exit(1)
     finally:

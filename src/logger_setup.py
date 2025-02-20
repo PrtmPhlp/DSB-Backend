@@ -30,14 +30,13 @@ class LoggerSetup:
             logging.Logger: A configured logger instance.
         """
         logger = logging.getLogger(name)
-        logger.setLevel(level)
 
         # Prevent adding multiple handlers if already set
-        if not logger.handlers:
-            coloredlogs.install(
-                level=level,
-                logger=logger,
-                fmt="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-                datefmt="%H:%M:%S",
-            )
+        # if not logger.handlers:
+        coloredlogs.install(
+            level=level,
+            logger=logger,
+            fmt="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            datefmt="%H:%M:%S",
+        )
         return logger

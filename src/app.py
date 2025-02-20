@@ -1,239 +1,234 @@
 #!/usr/bin/env python3
-# ------------------------------------------------
+# -----------------------------------------------------------
 """
-Backend for scraped and formatted data
+Flask-based backend with:
+- 10 requests/second rate limit (Flask-Limiter)
+- JWT-based authentication (flask_jwt_extended)
+- Colored logging (logger_setup.py)
+- Minimal routes, no OpenAPI docs
 
-__author__ = "PrtmPhlp"
-__Contact__ = "contact@pertermann.de"
-__Status__ = "Development"
+Installation:
+  pip install flask flask_cors flask_jwt_extended flask_limiter waitress \
+              werkzeug coloredlogs
 """
-# ------------------------------------------------
-# ! Imports
 
-import json
 import os
+import json
 import socket
+import logging
+from typing import Any, Dict
 
-from flask import Flask, Response, abort, jsonify, make_response, request
+from flask import Flask, Blueprint, Response, abort, jsonify, make_response, request
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required
-from waitress import serve
 from werkzeug.security import check_password_hash, generate_password_hash
+from waitress import serve
 
-from logger import setup_logger
+# Rate-limiting
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
-# Initialize logger
-logger = setup_logger(__name__)
+# Logging from external file
+from logger_setup import LoggerSetup
+
+# -----------------------------------------------------------
+# 1) Logger Setup
+# -----------------------------------------------------------
+logger = LoggerSetup.setup_logger(__name__, logging.INFO)
+
+# -----------------------------------------------------------
+# 2) Blueprint & Auth Setup
+# -----------------------------------------------------------
+api_bp = Blueprint("api", __name__)
+
+# Mock user database
+users_db = {
+    "274583": generate_password_hash("johann")
+}
+
+def load_json_file(path: str = "json/teacher_replaced.json") -> Dict[str, Any]:
+    """
+    Load JSON data from the specified file. Return fallback if unavailable.
+    """
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        logger.warning("File '%s' not found.", path)
+    except json.JSONDecodeError:
+        logger.warning("JSON decode error for file '%s'.", path)
+    return {"substitution": []}
 
 
-app = Flask(__name__)
-
-app = Flask(__name__)
-
-# Simplified CORS configuration
-CORS(app)
-
-
-@app.after_request
+# -----------------------------------------------------------
+# 3) Routes
+# -----------------------------------------------------------
+@api_bp.after_request
 def cors_after_request(response):
-    # Handle preflight requests specially
+    """
+    Apply a simple CORS policy after every request, including OPTIONS handling.
+    """
     if request.method == 'OPTIONS':
-        response = make_response()
-        response.headers.add('Access-Control-Allow-Origin',
-                             request.headers.get('Origin', '*'))
-        response.headers.add('Access-Control-Allow-Headers',
-                             'Content-Type, Authorization')
-        response.headers.add('Access-Control-Allow-Methods',
-                             'GET, POST, PUT, DELETE, OPTIONS')
-        response.headers.add('Access-Control-Allow-Credentials', 'true')
-        response.headers.add('Access-Control-Max-Age', '3600')
-        response.status_code = 204
-        return response
+        resp = make_response()
+        resp.headers.add('Access-Control-Allow-Origin',
+                         request.headers.get('Origin', '*'))
+        resp.headers.add('Access-Control-Allow-Headers',
+                         'Content-Type, Authorization')
+        resp.headers.add('Access-Control-Allow-Methods',
+                         'GET, POST, PUT, DELETE, OPTIONS')
+        resp.headers.add('Access-Control-Allow-Credentials', 'true')
+        resp.headers.add('Access-Control-Max-Age', '3600')
+        resp.status_code = 204
+        return resp
 
-    # For non-OPTIONS requests
     origin = request.headers.get('Origin')
     if origin:
         response.headers.add('Access-Control-Allow-Origin', origin)
         response.headers.add('Access-Control-Allow-Credentials', 'true')
-
     return response
 
 
-@app.route('/login', methods=['OPTIONS', 'POST'])
+@api_bp.route('/', methods=['GET'])
+def man_page() -> Response:
+    """
+    Man page with minimal info on available endpoints. No doc generation.
+    """
+    html = """
+    <h1>Unofficial DSBmobile API Server</h1>
+    <p>This API is <strong>rate-limited to 10 requests per second</strong>.</p>
+    <h2>Available Endpoints</h2>
+    <pre>
+    GET /                 - This man page
+    POST /login           - Authenticate & receive JWT
+    GET /api/             - Retrieve all plans (JWT required)
+    GET /api/&lt;task_id&gt;/     - Retrieve a single plan (JWT required)
+    GET /api/&lt;task_id&gt;/&lt;content_id&gt;/ - Retrieve specific content (JWT required)
+    GET /api/healthcheck  - Check server health
+    </pre>
+    """
+    return Response(html, mimetype='text/html')
+
+
+@api_bp.route("/login", methods=["OPTIONS", "POST"])
 def login():
     """
-    Authenticate user and return JWT token.
+    Authenticate user with a username & password, returning a JWT if valid.
     """
-    # print(f"Received {request.method} request to {request.path} with headers: {dict(request.headers)}")
-    # The OPTIONS handling is now done by the after_request handler
-    if request.method == 'OPTIONS':
+    if request.method == "OPTIONS":
         return make_response(), 204
 
-    # Rest of the login logic
+    # Accept either JSON or form data
     if not (request.is_json or request.form):
-        return jsonify({"msg": "Missing JSON or form data in request"}), 400
-    username = request.form.get(
-        'username') if request.form else request.json.get('username', None)
-    password = request.form.get(
-        'password') if request.form else request.json.get('password', None)
+        return jsonify({"msg": "Missing JSON or form data."}), 400
+
+    username = request.form.get('username') if request.form else request.json.get('username')
+    password = request.form.get('password') if request.form else request.json.get('password')
 
     if not username or not password:
         return jsonify({"msg": "Missing username or password"}), 400
 
-    if username not in users or not check_password_hash(users[username], password):
-        return jsonify({"msg": "Bad username or password"}), 401
+    # Validate credentials
+    user_hash = users_db.get(username)
+    if not user_hash or not check_password_hash(user_hash, password):
+        abort(401, description="Bad username or password")
 
-    access_token = create_access_token(identity=username)
-    return jsonify(access_token=access_token), 200
-
-
-# Setup the Flask-JWT-Extended extension
-app.config['JWT_SECRET_KEY'] = os.environ.get(
-    'JWT_SECRET_KEY', 'your-secret-keysädaöfkjsäöadlfk')  # Change this!
-jwt = JWTManager(app)
-
-# Mock user database (replace with a real database in production)
-users = {
-    "274583": generate_password_hash("johann")
-}
+    token = create_access_token(identity=username)
+    return jsonify(access_token=token), 200
 
 
-def load_json_file():
-    """
-    Load JSON data from file.
-
-    Returns:
-        dict: Loaded JSON data or empty dict with 'substitution' key if error occurs.
-    """
-    try:
-        with open('json/formatted.json', 'r', encoding='utf-8') as schema_file:
-            return json.load(schema_file)
-    except FileNotFoundError:
-        logger.info("Error: The file 'json/formatted.json' was not found.")
-    except json.JSONDecodeError:
-        logger.info("Error: Failed to decode JSON from the file.")
-    return {"substitution": []}
-
-
-@app.route('/', methods=['GET'])
-def hello_world() -> Response:
-    """
-    Man Page for the Unofficial DSBmobile API Server.
-
-    Returns:
-        Response: HTML formatted man page with API details.
-    """
-    man_page = """
-    <h1>Unofficial DSBmobile API Server</h1>
-    <h2>Available Endpoints</h2>
-    <pre>
-    1. /                     - Display this man page.
-    2. /login                - Authenticate and receive JWT token.
-    3. /api/                 - Retrieve all substitution plans.
-    4. /api/&lt;task_id&gt;/       - Retrieve a specific substitution entry by index.
-    5. /api/&lt;task_id&gt;/&lt;content_id&gt;/ - Retrieve a specific content item from a substitution entry.
-    6. /api/healthcheck      - Check the health status of the API server.
-    </pre>
-    <h2>Endpoint Descriptions</h2>
-    <pre>
-    /login                 : Authenticate using username and password to receive JWT token.
-                              Example: POST /login
-                              Body: {"username": "user", "password": "pass"}
-
-    /api/                   : Returns a JSON object containing all substitution plans.
-                              Example: GET /api/
-                              Required: JWT token in Authorization header
-
-    /api/&lt;task_id&gt;/          : Returns a specific substitution entry identified by its index.
-                              Example: GET /api/1/
-                              Required: JWT token in Authorization header
-
-    /api/&lt;task_id&gt;/&lt;content_id&gt;/ : Returns a specific content item from a substitution entry.
-                              Example: GET /api/1/2/
-                              Required: JWT token in Authorization header
-
-    /api/healthcheck      : Simple endpoint to check the health of the server.
-                              Example: GET /api/healthcheck
-    </pre>
-    <h2>Contact</h2>
-    <p>Author: <a href="https://pertermann.de">PrtmPhlp</a></p>
-    <p>Contact: <a href="mailto:contact@pertermann.de">contact@pertermann.de</a></p>
-    <p>Status: Development</p>
-    """
-    return Response(man_page, mimetype='text/html')
-
-
-@app.route('/api/', methods=['GET'])
+@api_bp.route("/api/", methods=["GET"])
 @jwt_required()
-def get_plans() -> Response:
+def get_all_plans():
     """
-    Retrieve all plans.
-
-    Returns:
-        Response: A JSON response containing all plans.
+    Return all substitution data from json/teacher_replaced.json, if any (requires JWT).
     """
-    plans = load_json_file()
-    return jsonify(plans)
+    data = load_json_file("json/teacher_replaced.json")
+    return jsonify(data), 200
 
 
-@app.route('/api/<int:task_id>/', methods=['GET'])
+@api_bp.route("/api/<int:task_id>/", methods=["GET"])
 @jwt_required()
-def get_plan(task_id: int) -> Response:
+def get_single_plan(task_id: int):
     """
-    Retrieve a single substitution entry by its index.
-
-    Args:
-        task_id (int): The index of the substitution entry.
-
-    Returns:
-        Response: A JSON response containing the substitution entry, or a 404 error if not found.
+    Return a single plan by index (requires JWT).
     """
-    plans = load_json_file()
+    data = load_json_file("json/teacher_replaced.json")
     try:
-        substitution = plans['substitution'][task_id]
-        return jsonify(substitution)
+        plan = data["substitution"][task_id]
+        return jsonify(plan), 200
     except IndexError:
-        abort(404, description="Substitution entry not found")
+        abort(404, description="Plan not found")
 
 
-@app.route('/api/<int:task_id>/<int:content_id>/', methods=['GET'])
+@api_bp.route("/api/<int:task_id>/<int:content_id>/", methods=["GET"])
 @jwt_required()
-def get_content(task_id: int, content_id: int) -> Response:
+def get_plan_content(task_id: int, content_id: int):
     """
-    Retrieve a specific content item from a substitution entry.
-
-    Args:
-        task_id (int): The index of the substitution entry.
-        content_id (int): The index of the content item within the substitution entry.
-
-    Returns:
-        Response: A JSON response containing the content item, or a 404 error if not found.
+    Return a specific content item from a plan (requires JWT).
     """
-    plans = load_json_file()
+    data = load_json_file("json/teacher_replaced.json")
     try:
-        substitution = plans['substitution'][task_id]
-        content = substitution['content'][content_id]
-        return jsonify(content)
+        plan = data["substitution"][task_id]
+        content = plan["content"][content_id]
+        return jsonify(content), 200
     except IndexError:
         abort(404, description="Content item not found")
 
 
-@app.route("/api/healthcheck", methods=["GET"])
+@api_bp.route("/api/healthcheck", methods=["GET"])
 def healthcheck():
     """
-    Check the health of the server.
-
-    Returns:
-        dict: Health status message.
+    Check the health of the server (no auth required).
     """
-    return {"status": "success", "message": "Flask API for DSBMobile data"}
+    return jsonify({"status": "success", "message": "Flask API for DSBMobile data"}), 200
 
 
-if __name__ == '__main__':
+# -----------------------------------------------------------
+# 4) Application Factory
+# -----------------------------------------------------------
+def create_app() -> Flask:
+    """
+    Creates and configures the Flask application with:
+      - JWT
+      - Rate limiting (10 requests/second)
+    """
+    from flask_limiter import Limiter
+    from flask_jwt_extended import JWTManager
+    from flask_cors import CORS
+
+    app = Flask(__name__)
+    # Minimal secret key for JWT (change for production)
+    app.config["JWT_SECRET_KEY"] = os.environ.get("JWT_SECRET_KEY", "your-secret-key")
+
+    # Rate-limit: default 10 req/sec for all endpoints
+    limiter = Limiter(
+        key_func=get_remote_address,
+        app=app,
+        default_limits=["10 per second"]
+    )
+
+    # JWT
+    jwt = JWTManager(app)
+
+    # Register blueprint
+    app.register_blueprint(api_bp)
+
+    # CORS
+    CORS(app)
+
+    return app
+
+# -----------------------------------------------------------
+# 5) Main
+# -----------------------------------------------------------
+if __name__ == "__main__":
     DEVELOPMENT = True
+    flask_app = create_app()
+
     if DEVELOPMENT:
-        app.run(host='0.0.0.0', port=5555, debug=True)
+        logger.info("Running in development mode: http://0.0.0.0:5555")
+        flask_app.run(host="0.0.0.0", port=5555, debug=True)
     else:
         local_ip = socket.gethostbyname(socket.gethostname())
-        print(f"Server running on http://{local_ip}:5555")
-        serve(app, host='0.0.0.0', port=5555, _quiet=False)
+        logger.info("Production mode at http://%s:5555", local_ip)
+        serve(flask_app, host="0.0.0.0", port=5555, _quiet=False)
