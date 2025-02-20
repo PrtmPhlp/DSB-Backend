@@ -6,7 +6,7 @@ A single-file solution that:
 2) Scrapes the "DaVinci Touch" section for class/course replacements.
 3) Saves raw data to a JSON file only if changes are detected.
 4) Formats that JSON data into a final structure.
-5) Replaces teacher codes with full names from lehrer.json
+5) Replaces teacher codes.
 6) Validates the final JSON with a JSON schema.
 """
 
@@ -88,9 +88,7 @@ class EnvCredentialsLoader:
             dsb_username = os.getenv("DSB_USERNAME")
             dsb_password = os.getenv("DSB_PASSWORD")
             if not dsb_username or not dsb_password:
-                raise ValueError(
-                    "DSB_USERNAME and DSB_PASSWORD must be set."
-                ) from exc
+                raise ValueError("DSB_USERNAME and DSB_PASSWORD must be set.") from exc
             self.__credentials = {
                 "DSB_USERNAME": dsb_username,
                 "DSB_PASSWORD": dsb_password
@@ -110,13 +108,13 @@ class EnvCredentialsLoader:
 # -----------------------------------------------------------
 class DSBScraper:
     """
-    Encapsulates all logic to:
+    Encapsulates logic to:
       - Fetch data from dsbmobile.com
       - Parse relevant HTML structures
-      - Compare changes and save to JSON
+      - Compare changes and save to JSON (only if changed)
     """
 
-    def __init__(self, username: str, password: str, log_level):
+    def __init__(self, username: str, password: str, log_level: int):
         self.username = username
         self.password = password
         self.logger = LoggerSetup.setup_logger(self.__class__.__name__, log_level)
@@ -154,7 +152,7 @@ class DSBScraper:
 
     def get_plans(self, base_url: str) -> Dict[str, str]:
         """
-        Parse the base URL to find all day-index plan links (like 'Montag_01-01-2024': 'url').
+        Parse the base URL to find day-index plan links (like 'Montag_01-01-2024': 'url').
         """
         soup = self._request_url_data(base_url)
         posts_dict = {}
@@ -192,8 +190,7 @@ class DSBScraper:
 
     def _scrape_single_plan(self, plan_url: str, course: str) -> Tuple[List[List[str]], bool]:
         """
-        Given a plan URL, find all rows in <table> that match 'course' in the first column,
-        plus subsequent rows that contain \xa0 in the first column.
+        Find rows in <table> that match 'course' in first column, plus subsequent \xa0 rows.
         """
         soup = self._request_url_data(plan_url)
         success = False
@@ -234,8 +231,8 @@ class DSBScraper:
         self, posts_dict: Dict[str, str], course: str, print_output: bool = False
     ) -> Dict[str, List[List[str]]]:
         """
-        Loop through each day-indexed plan (URL), parse for matching 'course' rows.
-        If print_output = True, it logs the raw dictionary as JSON.
+        Loop through each day-index plan URL, parse for matching 'course' rows.
+        If print_output, logs the raw dictionary as JSON.
         """
         result = {}
         for day_key, url in posts_dict.items():
@@ -253,8 +250,8 @@ class DSBScraper:
 
     def save_data_if_changed(self, new_data: dict, file_path: str) -> bool:
         """
-        Compare new_data to existing file content. If unchanged, skip. Otherwise, save.
-        Returns a bool indicating if changes were detected and saved.
+        Compare new_data to existing JSON. Save only if different.
+        Returns bool indicating if a save occurred.
         """
         existing_data = None
         try:
@@ -280,6 +277,7 @@ class DSBScraper:
 class JSONFormatter:
     """
     Builds a final structured JSON from the raw data, grouping by day, generating content lists, etc.
+    Always overwrites any previous JSON file (no 'changes detected' check).
     """
 
     def __init__(self, log_level: int):
@@ -356,6 +354,19 @@ class JSONFormatter:
 
         return output
 
+    def save_data(self, new_data: Dict[str, Any], file_path: str) -> None:
+        """
+        Save the provided data to a specified file path, creating directories if necessary.
+
+        Args:
+            new_data (Dict[str, Any]): The data to be saved.
+            file_path (str): The path to the file where the data should be saved.
+        """
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        with open(file_path, "w", encoding="utf-8") as f:
+            json.dump(new_data, f, ensure_ascii=False, indent=4)
+        self.logger.info("Formatted data saved to '%s'.", file_path)
+
 
 # -----------------------------------------------------------
 # 5) JSON Schema Validation
@@ -374,7 +385,7 @@ class JSONSchemaValidator:
                 schema = json.load(sf)
             jsonschema.validate(instance=json_data, schema=schema)
             self.logger.info("JSON data is valid according to '%s'.", schema_file)
-        except jsonschema.exceptions.ValidationError as e:
+        except jsonschema.exceptions.ValidationError as e: # type: ignore
             self.logger.error("JSON data is invalid: %s", e.message)
             raise
 
@@ -387,7 +398,7 @@ class TeacherReplacer:
     Replaces teacher codes in a data structure, given a mapping from teacher codes to names.
     """
 
-    def __init__(self, log_level):
+    def __init__(self, log_level: int):
         self.logger = LoggerSetup.setup_logger(self.__class__.__name__, log_level)
 
     def replace_teacher_codes(self, data: Dict[str, Any], teacher_mapping: Dict[str, Dict[str, str]]) -> Dict[str, Any]:
@@ -410,6 +421,15 @@ class TeacherReplacer:
                         counter += 1
         self.logger.info("Replaced \033[1m%d\033[0m teacher codes.", counter)
         return data
+
+    def save_data(self, replaced_data: Dict[str, Any], file_path: str) -> None:
+        """
+        Always overwrites the provided file with the teacher-replaced data (no 'changes detected' check).
+        """
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        with open(file_path, "w", encoding="utf-8") as f:
+            json.dump(replaced_data, f, ensure_ascii=False, indent=4)
+        self.logger.info("Teacher-replaced data saved to '%s'.", file_path)
 
 
 # -----------------------------------------------------------
@@ -434,7 +454,7 @@ def parse_arguments() -> argparse.Namespace:
 
     parser.add_argument(
         "-v", "--verbose", action="store_true",
-        help="Enable DEBUG logging and disable cache"
+        help="Enable DEBUG logging."
     )
     parser.add_argument(
         "-c", "--course", default="MSS12",
@@ -476,7 +496,7 @@ def main():
     Main entry point. Ties together:
       - Credentials loading
       - Scraping
-      - Saving raw data
+      - Saving raw data (only if changed)
       - Formatting
       - Teacher code replacement
       - Validation
@@ -499,7 +519,7 @@ def main():
         logger.critical("Could not load credentials: %s", e)
         sys.exit(1)
 
-    # Step 2: Scrape
+    # Step 2: Scrape raw data
     scraper = DSBScraper(creds["DSB_USERNAME"], creds["DSB_PASSWORD"], log_level)
     try:
         base_url = scraper.prepare_api_url()
@@ -510,56 +530,38 @@ def main():
     plans_dict = scraper.get_plans(base_url)
     raw_data = scraper.scrape_all_plans(plans_dict, args.course, args.print_output)
 
-    # Step 3: Compare & Save raw JSON if changed
-    if args.verbose:
-        changes_detected = True
-    else:
-        changes_detected = scraper.save_data_if_changed(raw_data, args.raw_file)
-
+    # Step 3: Save raw data if changed
+    # (If no changes, exit early)
+    changes_detected = scraper.save_data_if_changed(raw_data, args.raw_file)
     if not changes_detected:
-        logger.info("No changes detected; exiting early.")
+        logger.info("No changes detected in raw data. Exiting early.")
         sys.exit(0)
 
     # Step 4: Format JSON
     formatter = JSONFormatter(log_level)
-    final_json = formatter.format_data(raw_data, args.course)
-
-    # Write formatted JSON
-    os.makedirs(os.path.dirname(args.output_dir), exist_ok=True)
-    try:
-        with open(args.output_dir, "w", encoding="utf-8") as f:
-            json.dump(final_json, f, ensure_ascii=False, indent=4)
-        logger.info("Formatted data saved to '%s'.", args.output_dir)
-    except Exception as e:
-        logger.error("Error saving formatted JSON: %s", e)
+    formatted_data = formatter.format_data(raw_data, args.course)
+    formatter.save_data(formatted_data, args.output_dir)
 
     # Step 5: Load teacher mapping & replace teacher codes
     replacer = TeacherReplacer(log_level)
     try:
         with open(args.teacher_file, "r", encoding="utf-8") as tfile:
             teacher_map = json.load(tfile)
-        replaced_data = replacer.replace_teacher_codes(final_json, teacher_map)
+        replaced_data = replacer.replace_teacher_codes(formatted_data, teacher_map)
     except FileNotFoundError:
         logger.warning("Teacher file '%s' not found; skipping teacher code replacement.", args.teacher_file)
-        replaced_data = final_json
+        replaced_data = formatted_data
     except Exception as e:
         logger.error("Error loading teacher file or replacing codes: %s", e)
-        replaced_data = final_json
+        replaced_data = formatted_data
 
-    # Save teacher-replaced output
-    os.makedirs(os.path.dirname(args.teacher_replaced_file), exist_ok=True)
-    try:
-        with open(args.teacher_replaced_file, "w", encoding="utf-8") as f:
-            json.dump(replaced_data, f, ensure_ascii=False, indent=4)
-        logger.info("Teacher-replaced data saved to '%s'.", args.teacher_replaced_file)
-    except Exception as e:
-        logger.error("Error saving teacher-replaced JSON: %s", e)
+    replacer.save_data(replaced_data, args.teacher_replaced_file)
 
-    # Step 6: Validate (optional) using the teacher-replaced JSON
+    # Step 6: Validate final teacher-replaced JSON
     validator = JSONSchemaValidator()
     try:
         validator.validate(replaced_data, args.schema_file)
-    except jsonschema.exceptions.ValidationError:
+    except jsonschema.exceptions.ValidationError: # type: ignore
         logger.critical("Validation failed on teacher-replaced data. Exiting with error status.")
         sys.exit(1)
 
