@@ -76,10 +76,11 @@ def main() -> bool:
 
     if not changes_detected and not args.development:
         logger.info("No changes detected in scraped data. Exiting...")
+        format_json.main(changes_detected, args.course, args.raw_file, args.output_dir)
         return True
 
     # Format data
-    format_json.main(args.course, args.raw_file, args.output_dir)
+    format_json.main(changes_detected, args.course, args.raw_file, args.output_dir)
 
     # Validate data
     schema.main(args.schema_file, args.output_dir)
