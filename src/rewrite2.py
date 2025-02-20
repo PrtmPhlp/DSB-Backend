@@ -43,7 +43,7 @@ class EnvCredentialsLoader:
     with data hiding of internal attributes and methods.
     """
 
-    def __init__(self, env_file: str = ".env"):
+    def __init__(self, env_file: str):
         """
         Initialize with a path to the .env file, stored privately.
         """
@@ -116,10 +116,10 @@ class DSBScraper:
       - Compare changes and save to JSON
     """
 
-    def __init__(self, username: str, password: str):
+    def __init__(self, username: str, password: str, log_level):
         self.username = username
         self.password = password
-        self.logger = LoggerSetup.setup_logger(self.__class__.__name__)
+        self.logger = LoggerSetup.setup_logger(self.__class__.__name__, log_level)
 
     def prepare_api_url(self) -> str:
         """
@@ -140,8 +140,7 @@ class DSBScraper:
                 self.logger.debug("DaVinci Touch URL found: %s", base_url)
                 return base_url
 
-        raise ValueError(
-            "DaVinci Touch section not found in dsbmobile postings.")
+        raise ValueError("DaVinci Touch section not found in dsbmobile postings.")
 
     def _request_url_data(self, url: str) -> BeautifulSoup:
         self.logger.debug("Requesting data from URL: %s", url)
@@ -163,8 +162,7 @@ class DSBScraper:
         try:
             day_index = soup.find("ul", class_="day-index")
             if not day_index:
-                self.logger.warning(
-                    "No 'ul.day-index' found. Possibly no plans available.")
+                self.logger.warning("No 'ul.day-index' found. Possibly no plans available.")
                 return posts_dict
             links = day_index.find_all("a")  # type: ignore
 
@@ -181,17 +179,13 @@ class DSBScraper:
                 if len(parts) == 2:
                     date_str, weekday_str = parts[0], parts[1]
                     new_key = f"{weekday_str}_{date_str.replace('.', '-')}"
-                    full_url = requests.compat.urljoin(
-                        base_url, href)  # type: ignore
+                    full_url = requests.compat.urljoin(base_url, href)  # type: ignore
                     posts_dict[new_key] = full_url
-                    self.logger.debug("Found plan: %s -> %s",
-                                      new_key, full_url)
+                    self.logger.debug("Found plan: %s -> %s", new_key, full_url)
                 else:
-                    self.logger.warning(
-                        "Unexpected link text format: '%s'. Skipped.", text)
+                    self.logger.warning("Unexpected link text format: '%s'. Skipped.", text)
         except AttributeError as e:
-            self.logger.error(
-                "Error parsing HTML structure for day-index: %s", e)
+            self.logger.error("Error parsing HTML structure for day-index: %s", e)
             raise
 
         return posts_dict
@@ -219,16 +213,14 @@ class DSBScraper:
                 # If first cell matches the course, gather that row & subsequent
                 if columns[0].get_text(strip=True) == course:
                     success = True
-                    self.logger.debug(
-                        "Course '%s' found in row: %s", course, row)
+                    self.logger.debug("Course '%s' found in row: %s", course, row)
                     replacement = [col.get_text(strip=True) for col in columns]
                     total_replacements.append(replacement)
 
                     next_row = row.find_next_sibling("tr")
                     while next_row and "\xa0" in next_row.find("td").get_text():
                         columns_next = next_row.find_all("td")
-                        rep_next = [col.get_text(strip=True)
-                                    for col in columns_next]
+                        rep_next = [col.get_text(strip=True) for col in columns_next]
                         total_replacements.append(rep_next)
                         next_row = next_row.find_next_sibling("tr")
 
@@ -238,7 +230,9 @@ class DSBScraper:
 
         return total_replacements, success
 
-    def scrape_all_plans(self, posts_dict: Dict[str, str], course: str, print_output: bool = False) -> Dict[str, List[List[str]]]:
+    def scrape_all_plans(
+        self, posts_dict: Dict[str, str], course: str, print_output: bool = False
+    ) -> Dict[str, List[List[str]]]:
         """
         Loop through each day-indexed plan (URL), parse for matching 'course' rows.
         If print_output = True, it logs the raw dictionary as JSON.
@@ -248,11 +242,9 @@ class DSBScraper:
             rows, success = self._scrape_single_plan(url, course)
             result[day_key] = rows
             if success:
-                self.logger.info(
-                    "Matched course '%s' in plan: %s", course, day_key)
+                self.logger.info("Matched course '%s' in plan: %s", course, day_key)
             else:
-                self.logger.warning(
-                    "Course '%s' not found in plan: %s", course, day_key)
+                self.logger.warning("Course '%s' not found in plan: %s", course, day_key)
 
         if print_output:
             pretty_json = json.dumps(result, indent=2, ensure_ascii=False)
@@ -290,8 +282,8 @@ class JSONFormatter:
     Builds a final structured JSON from the raw data, grouping by day, generating content lists, etc.
     """
 
-    def __init__(self):
-        self.logger = LoggerSetup.setup_logger(self.__class__.__name__)
+    def __init__(self, log_level: int):
+        self.logger = LoggerSetup.setup_logger(self.__class__.__name__, log_level)
         self.weekday_map = {
             "Montag": 1,
             "Dienstag": 2,
@@ -339,9 +331,10 @@ class JSONFormatter:
         return substitution_entry
 
     def format_data(
-            self, scraped_data: Dict[str, List[List[str]]], course: str) -> Dict[str, Any]:
+        self, scraped_data: Dict[str, List[List[str]]], course: str
+    ) -> Dict[str, Any]:
         """
-        Create a final structured JSON. If no changes are detected, return minimal data.
+        Create a final structured JSON from the raw data.
         """
         output = {
             "createdAt": datetime.now().isoformat(),
@@ -351,18 +344,15 @@ class JSONFormatter:
 
         for key, entries in scraped_data.items():
             if "_" not in key:
-                self.logger.warning(
-                    "Unexpected key format (missing '_'): %s", key)
+                self.logger.warning("Unexpected key format (missing '_'): %s", key)
                 continue
 
             weekday_str, date_str = key.split("_", 1)
             try:
-                entry_for_day = self._create_substitution_entry(
-                    weekday_str, date_str, entries)
+                entry_for_day = self._create_substitution_entry(weekday_str, date_str, entries)
                 output["substitution"].append(entry_for_day)
             except Exception as e:
-                self.logger.error(
-                    "Error building substitution entry for '%s': %s", key, e)
+                self.logger.error("Error building substitution entry for '%s': %s", key, e)
 
         return output
 
@@ -383,34 +373,43 @@ class JSONSchemaValidator:
             with open(schema_file, "r", encoding="utf-8") as sf:
                 schema = json.load(sf)
             jsonschema.validate(instance=json_data, schema=schema)
-            self.logger.info(
-                "JSON data is valid according to '%s'.", schema_file)
+            self.logger.info("JSON data is valid according to '%s'.", schema_file)
         except jsonschema.exceptions.ValidationError as e:
             self.logger.error("JSON data is invalid: %s", e.message)
             raise
 
 
 # -----------------------------------------------------------
-# 6) TEACHER REPLACER Integration
+# 6) TEACHER REPLACER CLASS
 # -----------------------------------------------------------
-def replace_teacher_codes(data: Dict[str, Any], teacher_mapping: Dict[str, Dict[str, str]]) -> Dict[str, Any]:
+class TeacherReplacer:
     """
-    For each teacher code found in 'teacher', replace with the teacher's last name (or 'Nachname') 
-    from teacher_mapping. If the original code was in parentheses, preserve them.
+    Replaces teacher codes in a data structure, given a mapping from teacher codes to names.
     """
-    for substitution in data.get("substitution", []):
-        for item in substitution.get("content", []):
-            if "teacher" in item:
-                code = item["teacher"]
-                clean_code = code.strip('()')
-                if clean_code in teacher_mapping:
-                    old_value = item["teacher"]
-                    name = teacher_mapping[clean_code]['Nachname']
-                    item["teacher"] = f"({name})" if code.startswith(
-                        "(") else name
-                    logger.info("CHANGE: teacher: changed '%s' to '%s'",
-                                old_value, item["teacher"])
-    return data
+
+    def __init__(self, log_level):
+        self.logger = LoggerSetup.setup_logger(self.__class__.__name__, log_level)
+
+    def replace_teacher_codes(self, data: Dict[str, Any], teacher_mapping: Dict[str, Dict[str, str]]) -> Dict[str, Any]:
+        """
+        For each teacher code found in 'teacher', replace with the teacher's last name (or 'Nachname')
+        from teacher_mapping. If the original code was in parentheses, preserve them.
+        """
+        counter: int = 0
+        for substitution in data.get("substitution", []):
+            for item in substitution.get("content", []):
+                if "teacher" in item:
+                    code = item["teacher"]
+                    clean_code = code.strip('()')
+                    if clean_code in teacher_mapping:
+                        old_value = item["teacher"]
+                        name = teacher_mapping[clean_code]['Nachname']
+                        # If code had parentheses, keep them
+                        item["teacher"] = f"({name})" if code.startswith("(") else name
+                        self.logger.debug("CHANGE: teacher: changed '%s' to '%s'", old_value, item["teacher"])
+                        counter += 1
+        self.logger.info("Replaced \033[1m%d\033[0m teacher codes.", counter)
+        return data
 
 
 # -----------------------------------------------------------
@@ -440,6 +439,10 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         "-c", "--course", default="MSS12",
         help="Which course to scrape. Default: MSS12"
+    )
+    parser.add_argument(
+        "--env-file", default=".env",
+        help="Path to the .env file. Default: .env"
     )
     parser.add_argument(
         "-p", "--print-output", action="store_true",
@@ -482,14 +485,14 @@ def main():
     args = parse_arguments()
 
     # Set log level (DEBUG if -v, else INFO)
-    log_level = logging.DEBUG if args.verbose else logging.INFO
+    log_level: int = logging.DEBUG if args.verbose else logging.INFO
     LoggerSetup.setup_logger("UnifiedScraper", log_level)
 
     logger.info("Starting unified DSB scraping process...")
     logger.debug("Parsed arguments: %s", args)
 
     # Step 1: Load credentials
-    creds_loader = EnvCredentialsLoader()
+    creds_loader = EnvCredentialsLoader(args.env_file)
     try:
         creds = creds_loader.load_env_credentials()
     except ValueError as e:
@@ -497,7 +500,7 @@ def main():
         sys.exit(1)
 
     # Step 2: Scrape
-    scraper = DSBScraper(creds["DSB_USERNAME"], creds["DSB_PASSWORD"])
+    scraper = DSBScraper(creds["DSB_USERNAME"], creds["DSB_PASSWORD"], log_level)
     try:
         base_url = scraper.prepare_api_url()
     except Exception as e:
@@ -505,22 +508,20 @@ def main():
         sys.exit(1)
 
     plans_dict = scraper.get_plans(base_url)
-    raw_data = scraper.scrape_all_plans(
-        plans_dict, args.course, args.print_output)
+    raw_data = scraper.scrape_all_plans(plans_dict, args.course, args.print_output)
 
     # Step 3: Compare & Save raw JSON if changed
     if args.verbose:
         changes_detected = True
     else:
-        changes_detected = scraper.save_data_if_changed(
-            raw_data, args.raw_file)
+        changes_detected = scraper.save_data_if_changed(raw_data, args.raw_file)
 
     if not changes_detected:
         logger.info("No changes detected; exiting early.")
         sys.exit(0)
 
     # Step 4: Format JSON
-    formatter = JSONFormatter()
+    formatter = JSONFormatter(log_level)
     final_json = formatter.format_data(raw_data, args.course)
 
     # Write formatted JSON
@@ -533,10 +534,11 @@ def main():
         logger.error("Error saving formatted JSON: %s", e)
 
     # Step 5: Load teacher mapping & replace teacher codes
+    replacer = TeacherReplacer(log_level)
     try:
         with open(args.teacher_file, "r", encoding="utf-8") as tfile:
             teacher_map = json.load(tfile)
-        replaced_data = replace_teacher_codes(final_json, teacher_map)
+        replaced_data = replacer.replace_teacher_codes(final_json, teacher_map)
     except FileNotFoundError:
         logger.warning("Teacher file '%s' not found; skipping teacher code replacement.", args.teacher_file)
         replaced_data = final_json
@@ -558,8 +560,7 @@ def main():
     try:
         validator.validate(replaced_data, args.schema_file)
     except jsonschema.exceptions.ValidationError:
-        logger.critical(
-            "Validation failed on teacher-replaced data. Exiting with error status.")
+        logger.critical("Validation failed on teacher-replaced data. Exiting with error status.")
         sys.exit(1)
 
     logger.info("All steps complete. Exiting.")

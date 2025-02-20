@@ -75,7 +75,7 @@ def create_substitution_entry(day: str, date: str, entries: List[List[str]]) -> 
     return substitution_entry
 
 
-def fill_json_template(json_data: Dict[str, List[List[str]]], course: str) -> Dict[str, Any]:
+def fill_json_template(changes_detected: bool, json_data: Dict[str, List[List[str]]], course: str) -> Dict[str, Any]:
     """
     Fills in the JSON template with the provided data.
 
@@ -91,6 +91,9 @@ def fill_json_template(json_data: Dict[str, List[List[str]]], course: str) -> Di
         "class": course,
         "substitution": []
     }
+    if not changes_detected:
+        # logger.error("No changes detected in the scraped data.")
+        return output_json  # Return early if no changes detected
 
     for day, entries in json_data.items():
         # Splitting the string using '_'
@@ -103,7 +106,7 @@ def fill_json_template(json_data: Dict[str, List[List[str]]], course: str) -> Di
     return output_json
 
 
-def main(course: str, input_file: str, output_file: str) -> None:
+def main(changes_detected: bool, course: str, input_file: str, output_file: str) -> None:
     """
     Main function to process the JSON data and save the output.
 
@@ -121,7 +124,7 @@ def main(course: str, input_file: str, output_file: str) -> None:
         logger.error("Error decoding JSON from the file '%s'.", input_file)
         return
 
-    filled_json = fill_json_template(json_data, course)
+    filled_json = fill_json_template(changes_detected, json_data, course)
 
     try:
         with open(output_file, 'w', encoding='utf-8') as file:
@@ -130,14 +133,16 @@ def main(course: str, input_file: str, output_file: str) -> None:
         logger.error("Error saving data to '%s': %s", output_file, e)
         return
 
-    logger.info("JSON template filled and saved to '%s'", output_file)
+    if changes_detected:
+        logger.info("JSON template filled and saved to '%s'", output_file)
 
 
 # Example usage
 if __name__ == "__main__":
     # DEFAULT VALUES
     INPUT_FILE = "json/scraped.json"
-    default_args = argparse.Namespace(course='MSS12', output_dir='json/formatted.json')
+    default_args = argparse.Namespace(
+        course='MSS12', output_dir='json/formatted.json')
     main(default_args.course, INPUT_FILE, default_args.output_dir)
     # from os import system # type: ignore
     # system("cat json/formatted.json | jq") # type: ignore
