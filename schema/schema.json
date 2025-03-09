@@ -1,95 +1,103 @@
 {
     "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "http://example.com/your-multi-course-schema.json",
+    "title": "DSB Multi-Course Data Schema",
+    "description": "JSON schema for validating the final multi-course data structure.",
     "type": "object",
+    "required": [
+        "createdAt",
+        "courses"
+    ],
     "properties": {
         "createdAt": {
             "type": "string",
+            "description": "An ISO 8601 date-time string indicating when the data was created.",
             "format": "date-time"
         },
-        "class": {
-            "type": "string"
-        },
-        "substitution": {
-            "type": "array",
-            "items": {
+        "courses": {
+            "type": "object",
+            "description": "An object whose keys are course names, and values describe each course's substitutions.",
+            "additionalProperties": {
                 "type": "object",
+                "required": [
+                    "substitution"
+                ],
                 "properties": {
-                    "id": {
-                        "type": "string"
-                    },
-                    "date": {
-                        "type": "string",
-                        "pattern": "^\\d{2}-\\d{2}-\\d{4}$"
-                    },
-                    "weekDay": {
+                    "substitution": {
                         "type": "array",
-                        "items": [
-                            {
-                                "type": "string",
-                                "pattern": "^[1-7]$"
-                            },
-                            {
-                                "type": "string",
-                                "enum": [
-                                    "Montag",
-                                    "Dienstag",
-                                    "Mittwoch",
-                                    "Donnerstag",
-                                    "Freitag",
-                                    "Samstag",
-                                    "Sonntag"
-                                ]
-                            }
-                        ]
-                    },
-                    "content": {
-                        "type": "array",
+                        "description": "A list of day-based substitution objects for this course.",
                         "items": {
                             "type": "object",
-                            "properties": {
-                                "position": {
-                                    "type": "string",
-                                    "pattern": "^(\\d+\\.|MiPau|.+)$"
-                                },
-                                "teacher": {
-                                    "type": "string"
-                                },
-                                "subject": {
-                                    "type": "string"
-                                },
-                                "room": {
-                                    "type": "string"
-                                },
-                                "topic": {
-                                    "type": "string"
-                                },
-                                "info": {
-                                    "type": "string"
-                                }
-                            },
+                            "description": "Describes the substitutions for one day/entry.",
                             "required": [
-                                "position",
-                                "teacher",
-                                "subject",
-                                "room",
-                                "topic",
-                                "info"
-                            ]
+                                "id",
+                                "date",
+                                "weekDay",
+                                "content"
+                            ],
+                            "properties": {
+                                "id": {
+                                    "type": "string",
+                                    "description": "A unique ID (string) for this day's substitution entry."
+                                },
+                                "date": {
+                                    "type": "string",
+                                    "description": "The date portion (e.g. '10-03-2025') parsed from day_key."
+                                },
+                                "weekDay": {
+                                    "type": "array",
+                                    "description": "An array with one or more strings, e.g. ['Montag'].",
+                                    "items": {
+                                        "type": "string"
+                                    },
+                                    "minItems": 1
+                                },
+                                "content": {
+                                    "type": "array",
+                                    "description": "A list of row-based details for each substitution line.",
+                                    "items": {
+                                        "type": "object",
+                                        "required": [
+                                            "position",
+                                            "teacher",
+                                            "subject",
+                                            "room",
+                                            "topic",
+                                            "info"
+                                        ],
+                                        "properties": {
+                                            "position": {
+                                                "type": "string",
+                                                "description": "The hour/period (e.g. '3.', '7.', or 'Pause')."
+                                            },
+                                            "teacher": {
+                                                "type": "string",
+                                                "description": "The teacher name or code (optionally replaced)."
+                                            },
+                                            "subject": {
+                                                "type": "string",
+                                                "description": "The subject code (e.g. 'E', 'fr4', etc.)."
+                                            },
+                                            "room": {
+                                                "type": "string",
+                                                "description": "The room info (e.g. '102', '+Aula (C4)', etc.)."
+                                            },
+                                            "topic": {
+                                                "type": "string",
+                                                "description": "The topic or reason (e.g. 'Raumänderung', 'Zusatzunterricht')."
+                                            },
+                                            "info": {
+                                                "type": "string",
+                                                "description": "Any additional freeform info (or blank)."
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
-                },
-                "required": [
-                    "id",
-                    "date",
-                    "weekDay",
-                    "content"
-                ]
+                }
             }
         }
-    },
-    "required": [
-        "createdAt",
-        "class",
-        "substitution"
-    ]
+    }
 }
