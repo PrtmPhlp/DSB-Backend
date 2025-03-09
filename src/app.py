@@ -146,33 +146,33 @@ def get_all_plans():
     return jsonify(data), 200
 
 
-@api_bp.route("/api/<int:task_id>/", methods=["GET"])
-@jwt_required()
-def get_single_plan(task_id: int):
-    """
-    Return a single plan by index (requires JWT).
-    """
-    data = load_json_file("json/teacher_replaced.json")
-    try:
-        plan = data["substitution"][task_id]
-        return jsonify(plan), 200
-    except IndexError:
-        abort(404, description="Plan not found")
+# @api_bp.route("/api/<int:task_id>/", methods=["GET"])
+# @jwt_required()
+# def get_single_plan(task_id: int):
+#     """
+#     Return a single plan by index (requires JWT).
+#     """
+#     data = load_json_file("json/teacher_replaced.json")
+#     try:
+#         plan = data["substitution"][task_id]
+#         return jsonify(plan), 200
+#     except IndexError:
+#         abort(404, description="Plan not found")
 
 
-@api_bp.route("/api/<int:task_id>/<int:content_id>/", methods=["GET"])
-@jwt_required()
-def get_plan_content(task_id: int, content_id: int):
-    """
-    Return a specific content item from a plan (requires JWT).
-    """
-    data = load_json_file("json/teacher_replaced.json")
-    try:
-        plan = data["substitution"][task_id]
-        content = plan["content"][content_id]
-        return jsonify(content), 200
-    except IndexError:
-        abort(404, description="Content item not found")
+# @api_bp.route("/api/<int:task_id>/<int:content_id>/", methods=["GET"])
+# @jwt_required()
+# def get_plan_content(task_id: int, content_id: int):
+#     """
+#     Return a specific content item from a plan (requires JWT).
+#     """
+#     data = load_json_file("json/teacher_replaced.json")
+#     try:
+#         plan = data["substitution"][task_id]
+#         content = plan["content"][content_id]
+#         return jsonify(content), 200
+#     except IndexError:
+#         abort(404, description="Content item not found")
 
 
 @api_bp.route("/api/healthcheck", methods=["GET"])
