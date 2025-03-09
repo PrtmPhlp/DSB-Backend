@@ -74,32 +74,39 @@ docker compose -f compose-backend.yaml up -d
 <summary>Click to expand</summary>
 
 ```console
-$ python src/scraper.py -h
+$ python src/main.py -h
 
-Usage: python src/scraper.py [-h] [-v] [-c [COURSE]] [-p] [--version]
+Usage: python scraper.py [-h] [-v] [--env-file ENV_FILE] [--raw-file RAW_FILE] [--output-formatted-file OUTPUT_FORMATTED_FILE] [--teacher-dict TEACHER_DICT] [--teacher-replaced-file TEACHER_REPLACED_FILE]
+                         [--schema-file SCHEMA_FILE] [--skip-validator] [-p]
 
-	 ___      ___  ___ ___
-	| _ \_  _|   \/ __| _ )
-	|  _/ || | |) \__ \ _ \
-	|_|  \_, |___/|___/___/
-		 |__/
+     ___      ___  ___ ___
+    | _ \_  _|   \/ __| _ )
+    |  _/ || | |) \__ \ _ \
+    |_|  \_, |___/|___/___/
+         |__/
 
-This script scrapes data from dsbmobile.com to retrieve class replacements.
+Scrape day-plans once per day, attach empty-first-column lines to the last course.
 
 Options:
   -h, --help            show this help message and exit
-  -v, --verbose         Set the verbosity level: 0 for CRITICAL, 1 for INFO, 2
-						for DEBUG
-  -c, --course [COURSE]
-						Select the course to scrape. Default: MSS12
-  -p, --print-output    Print output to console
-  --version             show program's version number and exit
-
+  -v, --verbose         Enable DEBUG logging.
+  --env-file ENV_FILE   Path to the .env file.
+  --raw-file RAW_FILE   Where to save the raw day-based data.
+  --output-formatted-file OUTPUT_FORMATTED_FILE
+                        Where to save the formatted multi-course JSON.
+  --teacher-dict TEACHER_DICT
+                        Path to the teacher dictionary file.
+  --teacher-replaced-file TEACHER_REPLACED_FILE
+                        Where to save the teacher-replaced JSON.
+  --schema-file SCHEMA_FILE
+                        Path to the JSON schema file.
+  --skip-validator      Skip JSON schema validation.
+  -p, --print-output    Print raw day-based JSON output.
 ```
 
 ### Prerequisites
 
-- Python 3.12.4 (maybe other versions work, but this is what I used to develop this project)
+- Python 3.13 (maybe other versions work, but this is what I used to develop this project)
 
 ### Setting Up the Virtual Environment
 
@@ -164,21 +171,13 @@ export DSB_PASSWORD=your_password
 Once the virtual environment is set up, dependencies are installed, and secrets are configured, you can run the application using:
 
 ```bash
-python src/scraper.py
-```
-or
-```bash
-python src/runner.py
+python src/main.py
 ```
 
 For help running the application, use the `--help` flag:
 
 ```bash
-python src/scraper.py --help
-```
-...or
-```bash
-python src/runner.py --help
+python src/main.py --help
 ```
 
 ### Sample output
@@ -187,54 +186,84 @@ python src/runner.py --help
 
 ```json
 {
-	"createdAt": "2024-08-31T21:45:26.027867",
-	"class": "MSS12",
-	"substitution": [
-		{
-			"id": "1",
-			"date": "02-09-2024",
-			"weekDay": [
-				"1",
-				"Montag"
-			],
-			"content": [
-				{
-					"position": "6.",
-					"teacher": "(xy)",
-					"subject": "xy",
-					"room": "123",
-					"topic": "...",
-					"info": "..."
-				}
-			]
+    "createdAt": "2025-03-09T11:56:55.303724",
+    "courses": {
+        "10a": {
+            "substitution": [
+                {
+                    "id": "1",
+                    "date": "13-03-2025",
+                    "weekDay": [
+                        "Donnerstag"
+                    ],
+                    "content": [
+                        {
+                            "position": "4.",
+                            "teacher": "(...)",
+                            "subject": "D",
+                            "room": "103",
+                            "topic": "Vertretung",
+                            "info": ""
+                        }
+                    ]
+                },
+                {
+                    "id": "2",
+                    "date": "10-03-2025",
+                    "weekDay": [
+                        "Montag"
+                    ],
+                    "content": [
+                        {
+                            "position": "5.",
+                            "teacher": "(...)",
+                            "subject": "Ge",
+                            "room": "103",
+                            "topic": "Anderer Unterricht",
+                            "info": ""
+                        },
+                        {
+                            "position": "5.",
+                            "teacher": "...",
+                            "subject": "E",
+                            "room": "103",
+                            "topic": "Zusatzunterricht",
+                            "info": ""
+                        }
+                    ]
+                }
+            ]
 		},
-		{
-			"id": "2",
-			"date": "03-09-2024",
-			"weekDay": [
-				"2",
-				"Dienstag"
-			],
-			"content": [
-				{
-					"position": "6.",
-					"teacher": "(xy)",
-					"subject": "xy",
-					"room": "123",
-					"topic": "...",
-					"info": "..."
-				},
-				{
-					"position": "6.",
-					"teacher": "(xy)",
-					"subject": "xy",
-					"room": "123",
-					"topic": "...",
-					"info": "..."
-				}
-			]
-		}
-	]
+        "MSS13": {
+            "substitution": [
+                {
+                    "id": "1",
+                    "date": "12-03-2025",
+                    "weekDay": [
+                        "Mittwoch"
+                    ],
+                    "content": [
+                        {
+                            "position": "4.",
+                            "teacher": "...",
+                            "subject": "Mu",
+                            "room": "Aula",
+                            "topic": "Selbststudium",
+                            "info": ""
+                        },
+                        {
+                            "position": "5.",
+                            "teacher": "...",
+                            "subject": "Mu",
+                            "room": "Aula",
+                            "topic": "Zusatzunterricht",
+                            "info": ""
+                        }
+                    ]
+                }
+            ]
+        }
+    }
 }
 ```
 </details>
