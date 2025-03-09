@@ -40,7 +40,7 @@ class PyDSB:
             Retrieves the list of postings (documents) available for the authenticated user.
     """
 
-    def __init__(self, username: str = None, password: str = None):
+    def __init__(self, username: str = "", password: str = ""):
         """
         Initialize PyDSB with username and password to authenticate and obtain a token.
 
