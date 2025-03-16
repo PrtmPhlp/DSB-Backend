@@ -495,7 +495,7 @@ def main():
         replaced_data = replacer.replace_teacher_codes(final_data, teacher_map)
         replacer.save_data(replaced_data, args.teacher_replaced_file)
     except FileNotFoundError:
-        logger.warning("Teacher file '%s' not found; skipping teacher code replacement.", args.teacher_file)
+        logger.warning("Teacher file '%s' not found; skipping teacher code replacement.", args.teacher_dict)
         replaced_data = final_data
     except Exception as e:
         logger.error("Teacher replacement error: %s", e)
