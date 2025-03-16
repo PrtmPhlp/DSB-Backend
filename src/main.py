@@ -10,9 +10,6 @@ A single-file solution that:
 5) Formats that data into a multi-course JSON structure.
 6) Replaces teacher codes.
 7) Validates the final JSON with a JSON schema (optionally).
-
-Usage:
-  python scraper.py [options]
 """
 
 import argparse
@@ -250,7 +247,7 @@ class DSBScraper:
             self.logger.info("No changes detected. Skipping save.")
             return False
         elif skip_validator:
-            logger.warning("Change validation skipped via --skip-validator")
+            self.logger.warning("Raw Data validation skipped via --skip-validator")
 
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
         with open(file_path, "w", encoding="utf-8") as f:
@@ -401,14 +398,19 @@ class JSONSchemaValidator:
     def __init__(self):
         self.logger = LoggerSetup.setup_logger(self.__class__.__name__)
 
-    def validate(self, data: Dict[str, Any], schema_path: str) -> None:
+    def validate(self, data: Dict[str, Any], schema_path: str, skip_validator: bool) -> bool:
+        if skip_validator:
+            self.logger.warning("JSON schema validation skipped via --skip-validator")
+            return False
         try:
             with open(schema_path, "r", encoding="utf-8") as sf:
                 schema = json.load(sf)
             jsonschema.validate(instance=data, schema=schema)
             self.logger.info("JSON data is valid according to '%s'.", schema_path)
+            return True
         except FileNotFoundError:
-            logger.warning("Schema file '%s' not found; skipping schema validation.", schema_path)
+            self.logger.warning("Schema file '%s' not found; skipping schema validation.", schema_path)
+            return False
         except jsonschema.exceptions.ValidationError as e:
             self.logger.error("JSON data is invalid: %s", e.message)
             raise
@@ -500,15 +502,8 @@ def main():
         replaced_data = final_data
 
     # 7) Validate (optional)
-    if not args.skip_validator:
-        validator = JSONSchemaValidator()
-        try:
-            validator.validate(replaced_data, args.schema_file)
-        except jsonschema.exceptions.ValidationError:
-            logger.critical("Validation failed. Exiting.")
-            sys.exit(1)
-    else:
-        logger.warning("Skipping JSON schema validation via --skip-validator")
+    validator = JSONSchemaValidator()
+    validator.validate(replaced_data, args.schema_file, args.skip_validator)
 
     logger.info("All multi-course scraping steps complete. Exiting.")
 
