@@ -101,9 +101,7 @@ def man_page() -> Response:
     GET /                 - This man page
     POST /login           - Authenticate & receive JWT
     GET /api/             - Retrieve all plans (JWT required)
-    GET /api/&lt;task_id&gt;/     - Retrieve a single plan (JWT required)
-    GET /api/&lt;task_id&gt;/&lt;content_id&gt;/ - Retrieve specific content (JWT required)
-    GET /api/healthcheck  - Check server health
+    GET /healthcheck  - Check server health
     </pre>
     """
     return Response(html, mimetype='text/html')
@@ -175,7 +173,7 @@ def get_all_plans():
 #         abort(404, description="Content item not found")
 
 
-@api_bp.route("/api/healthcheck", methods=["GET"])
+@api_bp.route("/healthcheck", methods=["GET"])
 def healthcheck():
     """
     Check the health of the server (no auth required).

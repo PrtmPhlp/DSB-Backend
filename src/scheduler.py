@@ -20,7 +20,7 @@ import schedule
 from waitress import serve
 
 # Import the runner script that does the scraping/task
-import rewrite2 as runner
+import main as runner
 # Import the server's create_app() function
 from app import create_app
 
