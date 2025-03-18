@@ -90,7 +90,7 @@ class EnvCredentialsLoader:
 
 
 # ---------------------------------------------------------------------------
-# 3) DSBScraper: Day-based approach
+# 3) DSBScraper: Requests handling + Day-based parsing
 # ---------------------------------------------------------------------------
 class DSBScraper:
     """
@@ -257,7 +257,7 @@ class DSBScraper:
 
 
 # -------------------------------------------------------------------
-# 4) JSONFormatter (Day-based → multi-course)
+# 4) JSONFormatter: Inverting day-based data to multi-course format.
 # -------------------------------------------------------------------
 class JSONFormatter:
     """
@@ -395,6 +395,9 @@ class TeacherReplacer:
 # 6) JSONSchemaValidator
 # -------------------------------------------------------------------
 class JSONSchemaValidator:
+    """
+    Validates the final JSON data against a JSON schema.
+    """
     def __init__(self):
         self.logger = LoggerSetup.setup_logger(self.__class__.__name__)
 
@@ -501,7 +504,7 @@ def main():
         logger.error("Teacher replacement error: %s", e)
         replaced_data = final_data
 
-    # 7) Validate (optional)
+    # 7) Validate (skippable via --skip-validator)
     validator = JSONSchemaValidator()
     validator.validate(replaced_data, args.schema_file, args.skip_validator)
 

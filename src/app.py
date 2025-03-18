@@ -101,7 +101,7 @@ def man_page() -> Response:
     GET /                 - This man page
     POST /login           - Authenticate & receive JWT
     GET /api/             - Retrieve all plans (JWT required)
-    GET /healthcheck  - Check server health
+    GET /healthcheck      - Check server health
     </pre>
     """
     return Response(html, mimetype='text/html')
