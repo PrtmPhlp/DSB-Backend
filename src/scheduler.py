@@ -9,7 +9,6 @@ It:
 - Handles graceful shutdown on SIGINT/SIGTERM
 """
 
-import asyncio
 import multiprocessing
 import signal
 import socket
