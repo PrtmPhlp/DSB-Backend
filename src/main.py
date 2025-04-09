@@ -127,7 +127,11 @@ class DSBScraper:
         self.logger.debug("Requesting day-plan HTML: %s", url)
         response = requests.get(url, timeout=10)
         response.encoding = "utf-8"  # Force UTF-8 decoding
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            self.logger.critical("HTTP server error occurred: %s", e)
+            raise
         return BeautifulSoup(response.text, "html.parser")
 
     def get_day_plans(self, base_url: str) -> Dict[str, str]:
