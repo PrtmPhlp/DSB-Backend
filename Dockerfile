@@ -4,27 +4,34 @@ FROM python:3.12-slim
 # Set working directory
 WORKDIR /app
 
-# Install curl and cron for healthcheck and scheduling
-RUN apt-get update && apt-get install -y curl cron && rm -rf /var/lib/apt/lists/*
+# Combine apt-get commands into one layer, use no-install-recommends, and clean up
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl cron && \
+    rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first to leverage Docker cache
 COPY requirements.txt .
 
-# Install dependencies
+# Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the entire source code
+# Copy the source code directories
 COPY src/ ./src/
-# COPY json/ ./json/
 COPY schema/ ./schema/
 
-# Create necessary directories and files
-RUN mkdir -p json && touch json/scraped.json json/formatted.json
-
 # Set environment variables
-# ENV PYTHONUNBUFFERED=1
-ENV DSB_USERNAME=""
-ENV DSB_PASSWORD=""
+ENV PYTHONUNBUFFERED=1 \
+    DSB_USERNAME="" \
+    DSB_PASSWORD=""
 
-# Run the scheduler script and cron
-CMD cron && python src/scheduler.py
+# Copy the entrypoint script and ensure it’s executable
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+# Healthcheck
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl --fail http://localhost:5555/healthcheck || exit 1
+
+# Set the entrypoint and default command
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+CMD ["python", "src/scheduler.py"]
