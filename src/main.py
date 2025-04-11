@@ -70,12 +70,12 @@ class EnvCredentialsLoader:
                 self.__logger.info("Loaded credentials from .env file.")
             else:
                 raise ValueError("DSB_USERNAME/DSB_PASSWORD not found in .env")
-        except (FileNotFoundError, ValueError):
+        except (FileNotFoundError, ValueError) as exc:
             self.__logger.warning("Failed to load credentials from .env, attempting OS environment...")
             dsb_username = os.getenv("DSB_USERNAME")
             dsb_password = os.getenv("DSB_PASSWORD")
             if not dsb_username or not dsb_password:
-                raise ValueError("DSB_USERNAME and DSB_PASSWORD must be set.")
+                raise ValueError("DSB_USERNAME and DSB_PASSWORD must be set.") from exc
             self.__credentials = {
                 "DSB_USERNAME": dsb_username,
                 "DSB_PASSWORD": dsb_password
@@ -177,7 +177,7 @@ class DSBScraper:
             return day_data
 
         last_course = None
-        for row in table.find_all("tr"):
+        for row in table.find_all("tr"): # type: ignore
             cols = row.find_all("td")
             if not cols:
                 continue
@@ -372,7 +372,7 @@ class TeacherReplacer:
         courses = final_data.get("courses", {})
         total_changes = 0
 
-        for course_name, course_obj in courses.items():
+        for _, course_obj in courses.items():
             subs = course_obj.get("substitution", [])
             for sub in subs:
                 for item in sub.get("content", []):
@@ -418,7 +418,7 @@ class JSONSchemaValidator:
         except FileNotFoundError:
             self.logger.warning("Schema file '%s' not found; skipping schema validation.", schema_path)
             return False
-        except jsonschema.exceptions.ValidationError as e:
+        except jsonschema.exceptions.ValidationError as e: # type: ignore
             self.logger.error("JSON data is invalid: %s", e.message)
             raise
 
