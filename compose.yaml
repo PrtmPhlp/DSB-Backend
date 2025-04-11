@@ -3,7 +3,11 @@ services:
     container_name: dsb-frontend
     image: ghcr.io/prtmphlp/dsb-frontend:latest
     restart: unless-stopped
-    #build: ../frontend/
+    # build: ../frontend/
+    depends_on:
+      dsb-scraper:
+        condition: service_healthy
+        restart: true
     environment:
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
     ports:
