@@ -1,3 +1,4 @@
+name: dsbmobile
 services:
   dsb-frontend:
     container_name: dsb-frontend
@@ -5,9 +6,8 @@ services:
     restart: unless-stopped
     build: ../frontend
     depends_on:
-      dsb-scraper:
-        condition: service_healthy
-        restart: true
+      - dsb-scraper
+
     environment:
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
     ports:
