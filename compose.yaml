@@ -14,7 +14,8 @@ services:
       - 3003:3000
 
   dsb-scraper:
-    build: .
+    #build: .
+    image: ghcr.io/prtmphlp/dsb-backend
     container_name: dsb-scraper
     restart: unless-stopped
     ports:
