@@ -14,7 +14,6 @@ import signal
 import socket
 import sys
 import time
-import logging
 
 import schedule
 from waitress import serve
