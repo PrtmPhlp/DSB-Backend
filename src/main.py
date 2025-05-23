@@ -177,7 +177,7 @@ class DSBScraper:
             return day_data
 
         last_course = None
-        for row in table.find_all("tr"): # type: ignore
+        for row in table.find_all("tr"):  # type: ignore
             cols = row.find_all("td")
             if not cols:
                 continue
@@ -402,6 +402,7 @@ class JSONSchemaValidator:
     """
     Validates the final JSON data against a JSON schema.
     """
+
     def __init__(self):
         self.logger = LoggerSetup.setup_logger(self.__class__.__name__)
 
@@ -418,7 +419,7 @@ class JSONSchemaValidator:
         except FileNotFoundError:
             self.logger.warning("Schema file '%s' not found; skipping schema validation.", schema_path)
             return False
-        except jsonschema.exceptions.ValidationError as e: # type: ignore
+        except jsonschema.exceptions.ValidationError as e:  # type: ignore
             self.logger.error("JSON data is invalid: %s", e.message)
             raise
 
@@ -451,7 +452,7 @@ def parse_arguments() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def main():
+def main(scheduled_mode: bool = False):
     args = parse_arguments()
 
     # Logging level
@@ -467,7 +468,9 @@ def main():
         creds = creds_loader.load_env_credentials()
     except ValueError as e:
         logger.critical("Could not load credentials: %s", e)
-        sys.exit(1)
+        if not scheduled_mode:
+            sys.exit(1)
+        return
 
     # 2) Prepare
     scraper = DSBScraper(creds["DSB_USERNAME"], creds["DSB_PASSWORD"], log_level)
@@ -475,7 +478,9 @@ def main():
         base_url = scraper.prepare_api_url()
     except Exception as e:
         logger.critical("Failed to retrieve DaVinci Touch URL: %s", e)
-        sys.exit(1)
+        if not scheduled_mode:
+            sys.exit(1)
+        return
 
     # 3) Day-based parse: single fetch per day
     day_data = scraper.scrape_all_days_once(base_url)
@@ -486,8 +491,10 @@ def main():
     # 4) Save if changed
     changed = scraper.save_data_if_changed(day_data, args.raw_file, args.skip_validator)
     if not changed:
-        logger.info("No changes detected in raw data. Exiting early.")
-        sys.exit(0)
+        logger.info("No changes detected in raw data.")
+        if not scheduled_mode:
+            sys.exit(0)
+        return
 
     # 5) Format day-based data -> multi-course
     formatter = JSONFormatter(log_level)
@@ -512,8 +519,7 @@ def main():
     validator = JSONSchemaValidator()
     validator.validate(replaced_data, args.schema_file, args.skip_validator)
 
-    logger.info("All multi-course scraping steps complete. Exiting.")
-
+    logger.info("All multi-course scraping steps complete.")
 
 if __name__ == "__main__":
     main()
