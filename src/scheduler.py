@@ -31,7 +31,7 @@ from logger_setup import LoggerSetup
 # ---------------------------------------------------------------------------
 logger = LoggerSetup.setup_logger("Scheduler")
 # Global flag for shutdown
-should_exit = False
+SHOULD_EXIT = False
 
 
 def task() -> None:
@@ -43,7 +43,7 @@ def task() -> None:
         runner.main(scheduled_mode=True)
         logger.info("Task completed successfully")
     except Exception as e:
-        logger.error(f"Error during task execution: {e}", exc_info=True)
+        logger.error("Error during task execution: %s", e, exc_info=True)
 
 
 def run_flask_app(exit_event) -> None:
@@ -56,10 +56,10 @@ def run_flask_app(exit_event) -> None:
             flask_app = create_app()
             hostname = socket.gethostname()
             local_ip = socket.gethostbyname(hostname)
-            logger.info(f"Starting Flask server on http://{local_ip}:5555")
+            logger.info("Starting Flask server on http://%s:5555", local_ip)
             serve(flask_app, host='0.0.0.0', port=5555)
         except Exception as e:
-            logger.error(f"Flask server crashed: {e}", exc_info=True)
+            logger.error("Flask server crashed: %s", e, exc_info=True)
             logger.info("Restarting Flask server in 5 seconds...")
             time.sleep(5)
 
@@ -68,16 +68,16 @@ def signal_handler(signum: int, _) -> None:
     """
     Handle shutdown gracefully on SIGINT/SIGTERM.
     """
-    global should_exit
-    logger.info(f"Received signal {signum}, initiating shutdown...")
-    should_exit = True
+    global SHOULD_EXIT
+    logger.info("Received signal %s, initiating shutdown...", signum)
+    SHOULD_EXIT = True
 
 
 def main() -> None:
     """
     Initialize and run the scheduler with improved error handling and automatic restarts.
     """
-    global should_exit
+    global SHOULD_EXIT
 
     # Set up signal handlers for graceful shutdown
     signal.signal(signal.SIGINT, signal_handler)
@@ -103,11 +103,11 @@ def main() -> None:
     logger.info("Scheduled task to run every 2 minutes")
 
     try:
-        while not should_exit:
+        while not SHOULD_EXIT:
             schedule.run_pending()
             time.sleep(1)
     except Exception as e:
-        logger.error(f"Error in scheduler loop: {e}", exc_info=True)
+        logger.error("Error in scheduler loop: %s", e, exc_info=True)
     finally:
         logger.info("Shutting down...")
         flask_exit.set()  # Signal Flask process to exit
