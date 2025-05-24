@@ -169,7 +169,8 @@ def create_app() -> Flask:
     limiter = Limiter(
         key_func=get_remote_address,
         app=app,
-        default_limits=["10 per second"]
+        default_limits=["10 per second"],
+        storage_uri="memory://"
     )
 
     # JWT
