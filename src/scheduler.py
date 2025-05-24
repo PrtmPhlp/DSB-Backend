@@ -44,6 +44,9 @@ def task() -> None:
             output_path='schema/lehrer.json'
         )
         teacher_scraper.run()
+        
+        # Wait 200ms to ensure teacher data is fully processed
+        time.sleep(0.2)
 
         # Then run main DSB scraping task
         runner.main(scheduled_mode=True)
