@@ -46,19 +46,6 @@ users_db = {
     "274583": generate_password_hash("johann")
 }
 
-def load_json_file(path: str = "json/teacher_replaced.json") -> Dict[str, Any]:
-    """
-    Load JSON data from the specified file. Return fallback if unavailable.
-    """
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except FileNotFoundError:
-        logger.warning("File '%s' not found.", path)
-    except json.JSONDecodeError:
-        logger.warning("JSON decode error for file '%s'.", path)
-    return {"substitution": []}
-
 
 # -----------------------------------------------------------
 # 3) Routes
@@ -138,40 +125,20 @@ def login():
 @jwt_required()
 def get_all_plans():
     """
-    Return all substitution data from json/teacher_replaced.json, if any (requires JWT).
+    Return all substitution data from json/teacher_replaced.json or json/formatted.json as fallback.
     """
-    data = load_json_file("json/teacher_replaced.json")
-    return jsonify(data), 200
-
-
-# @api_bp.route("/api/<int:task_id>/", methods=["GET"])
-# @jwt_required()
-# def get_single_plan(task_id: int):
-#     """
-#     Return a single plan by index (requires JWT).
-#     """
-#     data = load_json_file("json/teacher_replaced.json")
-#     try:
-#         plan = data["substitution"][task_id]
-#         return jsonify(plan), 200
-#     except IndexError:
-#         abort(404, description="Plan not found")
-
-
-# @api_bp.route("/api/<int:task_id>/<int:content_id>/", methods=["GET"])
-# @jwt_required()
-# def get_plan_content(task_id: int, content_id: int):
-#     """
-#     Return a specific content item from a plan (requires JWT).
-#     """
-#     data = load_json_file("json/teacher_replaced.json")
-#     try:
-#         plan = data["substitution"][task_id]
-#         content = plan["content"][content_id]
-#         return jsonify(content), 200
-#     except IndexError:
-#         abort(404, description="Content item not found")
-
+    files_to_try = ["json/teacher_replaced.json", "json/formatted.json"]
+    
+    for file_path in files_to_try:
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                return jsonify(json.load(f)), 200
+        except FileNotFoundError:
+            logger.warning("File '%s' not found.", file_path)
+        except json.JSONDecodeError:
+            logger.warning("JSON decode error for file '%s'.", file_path)
+    
+    return jsonify({"substitution": []}), 200
 
 @api_bp.route("/healthcheck", methods=["GET"])
 def healthcheck():
@@ -215,6 +182,7 @@ def create_app() -> Flask:
     CORS(app)
 
     return app
+
 
 # -----------------------------------------------------------
 # 5) Main
