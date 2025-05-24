@@ -2,11 +2,6 @@
 # -----------------------------------------------------------
 """
 Scheduler module for running periodic tasks using the schedule library.
-
-It:
-- Runs the Flask server (from server.py) in a separate process with auto-restart
-- Executes runner.main() every 2 minutes
-- Handles graceful shutdown on SIGINT/SIGTERM
 """
 
 import multiprocessing
@@ -22,14 +17,16 @@ from waitress import serve
 import main as runner
 # Import the server's create_app() function
 from app import create_app
+from teacher_scraper import TeacherScraper
 
-# Logging from external file
+
 from logger_setup import LoggerSetup
 
 # ---------------------------------------------------------------------------
 # 1) Logger Setup
 # ---------------------------------------------------------------------------
 logger = LoggerSetup.setup_logger("Scheduler")
+
 # Global flag for shutdown
 SHOULD_EXIT = False
 
@@ -37,9 +34,18 @@ SHOULD_EXIT = False
 def task() -> None:
     """
     Execute the main runner script and log its execution.
+    First update teacher data, then run the main DSB scraper.
     """
     logger.info("Starting scheduled task execution...")
     try:
+        # First update teacher data
+        teacher_scraper = TeacherScraper(
+            url='https://www.goerres-koblenz.de/kollegium/',
+            output_path='schema/lehrer.json'
+        )
+        teacher_scraper.run()
+
+        # Then run main DSB scraping task
         runner.main(scheduled_mode=True)
         logger.info("Task completed successfully")
     except Exception as e:
@@ -68,7 +74,7 @@ def signal_handler(signum: int, _) -> None:
     """
     Handle shutdown gracefully on SIGINT/SIGTERM.
     """
-    global SHOULD_EXIT
+    global SHOULD_EXIT  # pylint: disable=global-statement
     logger.info("Received signal %s, initiating shutdown...", signum)
     SHOULD_EXIT = True
 
@@ -77,8 +83,6 @@ def main() -> None:
     """
     Initialize and run the scheduler with improved error handling and automatic restarts.
     """
-    global SHOULD_EXIT
-
     # Set up signal handlers for graceful shutdown
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)

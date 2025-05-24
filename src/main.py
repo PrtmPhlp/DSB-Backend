@@ -67,7 +67,7 @@ class EnvCredentialsLoader:
                     "DSB_USERNAME": dsb_username,
                     "DSB_PASSWORD": dsb_password
                 }
-                self.__logger.info("Loaded credentials from .env file.")
+                self.__logger.info("Loaded credentials from .env file")
             else:
                 raise ValueError("DSB_USERNAME/DSB_PASSWORD not found in .env")
         except (FileNotFoundError, ValueError) as exc:
@@ -248,7 +248,7 @@ class DSBScraper:
             pass
 
         if existing_data == data and skip_validator is False:
-            self.logger.info("No changes detected. Skipping save.")
+            self.logger.info("No changes detected. Skipping save")
             return False
         elif skip_validator:
             self.logger.warning("Raw Data validation skipped via --skip-validator")
@@ -491,7 +491,7 @@ def main(scheduled_mode: bool = False):
     # 4) Save if changed
     changed = scraper.save_data_if_changed(day_data, args.raw_file, args.skip_validator)
     if not changed:
-        logger.info("No changes detected in raw data.")
+        logger.info("No changes detected in raw data")
         if not scheduled_mode:
             sys.exit(0)
         return
