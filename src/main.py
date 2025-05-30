@@ -8,7 +8,7 @@ A single-file solution that:
 3) Parses all table rows and merges sub-lines with empty first column into the last encountered course.
 4) Saves raw day-based data if changed.
 5) Formats that data into a multi-course JSON structure.
-6) Replaces teacher codes.
+6) Replaces teacher and subject codes.
 7) Validates the final JSON with a JSON schema (optionally).
 """
 
@@ -348,30 +348,66 @@ class JSONFormatter:
 
 
 # -------------------------------------------------------------------
-# 5) TeacherReplacer
+# 5) CodeReplacer: Unified Teacher and Subject code replacement
 # -------------------------------------------------------------------
-class TeacherReplacer:
+class CodeReplacer:
     """
-    Replaces teacher codes for every course in the final data structure.
-    Then overwrites the file with the replaced data.
-    Supports multiple teacher codes in a single cell, preserving the original format:
+    Unified replacement system for both teacher and subject codes in the final data structure.
+    Preserves original formatting (prefixes and parentheses) while replacing codes with full names.
+
+    Teacher examples:
     - "+Me (Mi)" -> "+Meyer (Miller)"
     - "Bal, Stü" -> "Ballmann, Stüber"
-    - "+Mue (Hm)" -> "+Mueller (Hammer)"
     - "+Mi" -> "+Miller"
     - "(Mi)" -> "(Miller)"
+
+    Subject examples (skipped for MSS classes):
+    - "+M (D)" -> "+Mathe (Deutsch)"
+    - "Ek" -> "Erdkunde"
+    - "(Ek)" -> "(Erdkunde)"
     """
 
     def __init__(self, log_level: int):
         self.logger = LoggerSetup.setup_logger(self.__class__.__name__, log_level)
+        # Define the subject mapping
+        self.subject_map = {
+            "D": "Deutsch",
+            "M": "Mathe",
+            "E": "Englisch",
+            "F": "Französisch",
+            "L": "Latein",
+            "Sp": "Sport",
+            "Mu": "Musik",
+            "Ku": "Kunst",
+            "Bi": "Biologie",
+            "Ch": "Chemie",
+            "Ph": "Physik",
+            "Ge": "Geschichte",
+            "Ek": "Erdkunde",
+            "et": "Ethik",
+            "rel": "Religion",
+            "Sk": "Sozialkunde",
+            "Inf": "Informatik",
+            "Gr": "Griechisch"
+        }
 
-    def _process_teacher_code(self, code: str, teacher_map: Dict[str, Dict[str, str]]) -> str:
-        """Process a single teacher code and return the replaced name, preserving format."""
+    def _process_code(self, code: str, replacement_map: Dict[str, Any], key_for_value: str = "") -> str:
+        """
+        Process a single code (teacher or subject) and return the replaced name, preserving format.
+
+        Args:
+            code: The code to process (e.g. '+Me' or '(Ek)')
+            replacement_map: Dictionary containing the replacements
+            key_for_value: For nested dicts, specifies which key to use for the replacement value
+
+        Returns:
+            Processed string with preserved formatting
+        """
         clean_code = code.strip()
         if not clean_code:
             return clean_code
 
-        # Handle the case of +Code or (Code)
+        # Extract formatting (prefix/suffix)
         prefix = ""
         if clean_code.startswith("+"):
             prefix = "+"
@@ -383,8 +419,14 @@ class TeacherReplacer:
         # Get the actual code without formatting
         code_to_look_up = clean_code.strip("()")
 
-        if code_to_look_up in teacher_map:
-            name = teacher_map[code_to_look_up]["Nachname"]
+        if code_to_look_up in replacement_map:
+            if key_for_value:
+                # For nested structures like teacher_map where we need a specific key
+                name = replacement_map[code_to_look_up][key_for_value]
+            else:
+                # For simple mappings like subject_map
+                name = replacement_map[code_to_look_up]
+
             if prefix == "+":
                 return f"+{name}"
             elif prefix == "(":
@@ -392,52 +434,84 @@ class TeacherReplacer:
             return name
         return code
 
-    def replace_teacher_codes(self, final_data: Dict[str, Any], teacher_map: Dict[str, Dict[str, str]]) -> Dict[str, Any]:
-        courses = final_data.get("courses", {})
-        total_changes = 0
+    def _process_field(self, field_text: str, replacement_map: Dict[str, Any], key_for_value: str = "") -> str:
+        """
+        Process a complete field that might contain multiple codes.
 
-        for _, course_obj in courses.items():
+        Args:
+            field_text: The text to process (e.g. "+Me (Mi), Bal")
+            replacement_map: Dictionary containing the replacements
+            key_for_value: For nested dicts, specifies which key to use for the replacement value
+
+        Returns:
+            Processed string with all codes replaced while preserving format
+        """
+        if not field_text:
+            return field_text
+
+        # Split by comma first
+        parts = [p.strip() for p in field_text.split(",")]
+        processed_parts = []
+
+        for part in parts:
+            # Check if part contains parentheses pattern like "Text (Code)"
+            if "(" in part and ")" in part and not part.startswith("("):
+                before_paren = part[:part.find("(")].strip()
+                in_paren = part[part.find("("):].strip()
+
+                # Process both parts separately
+                if before_paren:
+                    processed_parts.append(self._process_code(before_paren, replacement_map, key_for_value))
+                if in_paren:
+                    processed_parts.append(self._process_code(in_paren, replacement_map, key_for_value))
+            else:
+                # Simple case - either standalone code, +Code, or (Code)
+                processed_parts.append(self._process_code(part, replacement_map, key_for_value))
+
+        return ", ".join(processed_parts)
+
+    def replace_codes(self, final_data: Dict[str, Any], teacher_map: Dict[str, Dict[str, str]]) -> Dict[str, Any]:
+        """
+        Replace both teacher and subject codes in the data, preserving formatting.
+        Skips subject replacement for MSS classes.
+        """
+        courses = final_data.get("courses", {})
+        total_teacher_changes = 0
+        total_subject_changes = 0
+
+        for course_name, course_obj in courses.items():
             subs = course_obj.get("substitution", [])
             for sub in subs:
                 for item in sub.get("content", []):
+                    # Teacher replacement
                     teacher_field = item.get("teacher", "")
-                    if not teacher_field:
-                        continue
+                    if teacher_field:
+                        new_teacher = self._process_field(teacher_field, teacher_map, "Nachname")
+                        if new_teacher != teacher_field:
+                            self.logger.debug("Changed teacher '%s' -> '%s'", teacher_field, new_teacher)
+                            item["teacher"] = new_teacher
+                            total_teacher_changes += 1
 
-                    # Split by comma first
-                    parts = [p.strip() for p in teacher_field.split(",")]
-                    processed_parts = []
+                    # Subject replacement (skip for MSS classes)
+                    if not course_name.startswith("MSS"):
+                        subject_field = item.get("subject", "")
+                        if subject_field:
+                            new_subject = self._process_field(subject_field, self.subject_map)
+                            if new_subject != subject_field:
+                                self.logger.debug("Changed subject '%s' -> '%s'", subject_field, new_subject)
+                                item["subject"] = new_subject
+                                total_subject_changes += 1
 
-                    for part in parts:
-                        # Check if part contains parentheses pattern like "Text (Code)"
-                        if "(" in part and ")" in part and not part.startswith("("):
-                            before_paren = part[:part.find("(")].strip()
-                            in_paren = part[part.find("("):].strip()
-
-                            # Process both parts separately
-                            if before_paren:
-                                processed_parts.append(self._process_teacher_code(before_paren, teacher_map))
-                            if in_paren:
-                                processed_parts.append(self._process_teacher_code(in_paren, teacher_map))
-                        else:
-                            # Simple case - either standalone code, +Code, or (Code)
-                            processed_parts.append(self._process_teacher_code(part, teacher_map))
-
-                    # Join with the same formatting
-                    new_value = ", ".join(processed_parts)
-                    if new_value != teacher_field:
-                        self.logger.debug("Changed teacher '%s' -> '%s'", teacher_field, new_value)
-                        item["teacher"] = new_value
-                        total_changes += 1
-
-        self.logger.info("Replaced %d teacher codes across all courses.", total_changes)
+        self.logger.info("Replaced %d teacher codes and %d subject codes.",
+                         total_teacher_changes, total_subject_changes)
         return final_data
 
     def save_data(self, replaced_data: Dict[str, Any], path: str) -> None:
+        """Save the processed data to a JSON file."""
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w", encoding="utf-8") as f:
             json.dump(replaced_data, f, indent=2, ensure_ascii=False)
-        self.logger.info("Teacher-replaced multi-course data saved to %s", path)
+        self.logger.info("Code-replaced multi-course data saved to %s", path)
 
 
 # -------------------------------------------------------------------
@@ -547,11 +621,11 @@ def main(scheduled_mode: bool = False):
     formatter.save_data(final_data, args.output_formatted_file)
 
     # 6) Teacher replacement
-    replacer = TeacherReplacer(log_level)
+    replacer = CodeReplacer(log_level)
     try:
         with open(args.teacher_dict, "r", encoding="utf-8") as tf:
             teacher_map = json.load(tf)
-        replaced_data = replacer.replace_teacher_codes(final_data, teacher_map)
+        replaced_data = replacer.replace_codes(final_data, teacher_map)
         replacer.save_data(replaced_data, args.teacher_replaced_file)
     except FileNotFoundError:
         logger.warning("Teacher file '%s' not found; skipping teacher code replacement.", args.teacher_dict)
