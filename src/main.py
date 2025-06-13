@@ -19,7 +19,7 @@ import logging
 import os
 import sys
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import jsonschema
 import requests
@@ -169,20 +169,20 @@ class DSBScraper:
         Returns a dict: { "5a": [[row], [row]], "MSS12": [[row], ...], ... }
         """
         day_data: Dict[str, List[List[str]]] = {}
-        soup = self._fetch_day_html(day_url)
+        soup: BeautifulSoup = self._fetch_day_html(day_url)
         table = soup.find("table")
 
         if not table:
             self.logger.warning("No <table> found for day '%s' at %s", day_key, day_url)
             return day_data
 
-        last_course = None
+        last_course: Optional[str] = None
         for row in table.find_all("tr"):  # type: ignore
             cols = row.find_all("td")
             if not cols:
                 continue
 
-            first_cell = cols[0].get_text(strip=True)
+            first_cell: str = cols[0].get_text(strip=True)
 
             # If first cell is empty or \xa0 => attach to last_course (continuation line)
             # Otherwise, we update last_course to the new course
@@ -195,14 +195,14 @@ class DSBScraper:
                         [c.get_text(strip=True) for c in cols]
                     )
                     continue
-                course_name = last_course
+                course_name: str = last_course
             else:
                 # new course
-                course_name = first_cell
+                course_name: str = first_cell
                 last_course = course_name
 
             # Gather the entire row
-            row_values = [c.get_text(strip=True) for c in cols]
+            row_values: List[str] = [c.get_text(strip=True) for c in cols]
 
             if course_name not in day_data:
                 day_data[course_name] = []
@@ -217,21 +217,21 @@ class DSBScraper:
         3) Combine them into raw_data[day_key][course] = [ rows... ]
         """
         raw_data: Dict[str, Dict[str, List[List[str]]]] = {}
-        day_plans = self.get_day_plans(base_url)
+        day_plans: Dict[str, str] = self.get_day_plans(base_url)
         if not day_plans:
             self.logger.warning("No day plans found. raw_data will be empty.")
             return raw_data
 
         self.logger.debug("Scraping each day-plan in parallel (single request per day).")
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            future_map = {
+            future_map: Dict[concurrent.futures.Future, str] = {
                 executor.submit(self.parse_single_day, dk, du): dk
                 for dk, du in day_plans.items()
             }
             for fut in concurrent.futures.as_completed(future_map):
-                day_key = future_map[fut]
+                day_key: str = future_map[fut]
                 try:
-                    day_data = fut.result()
+                    day_data: Dict[str, List[List[str]]] = fut.result()
                     raw_data[day_key] = day_data
                 except Exception as e:
                     self.logger.error("Error parsing day '%s': %s", day_key, e)
@@ -240,7 +240,7 @@ class DSBScraper:
         return raw_data
 
     def save_data_if_changed(self, data: Dict[str, Any], file_path: str, skip_validator: bool) -> bool:
-        existing_data = None
+        existing_data: Optional[Any] = None
         try:
             with open(file_path, "r", encoding="utf-8") as f:
                 existing_data = json.load(f)
