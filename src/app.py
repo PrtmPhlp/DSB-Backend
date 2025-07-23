@@ -16,16 +16,14 @@ import os
 import json
 import socket
 import logging
-from typing import Any, Dict
+import time
 
 from flask import Flask, Blueprint, Response, abort, jsonify, make_response, request
-from flask_cors import CORS
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required
+from flask_jwt_extended import create_access_token, jwt_required
 from werkzeug.security import check_password_hash, generate_password_hash
 from waitress import serve
 
 # Rate-limiting
-from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
 # Logging from external file
@@ -34,7 +32,7 @@ from logger_setup import LoggerSetup
 # -----------------------------------------------------------
 # 1) Logger Setup
 # -----------------------------------------------------------
-logger = LoggerSetup.setup_logger(__name__, logging.INFO)
+logger = LoggerSetup.setup_logger("API")
 
 # -----------------------------------------------------------
 # 2) Blueprint & Auth Setup
@@ -46,6 +44,15 @@ users_db = {
     "274583": generate_password_hash("johann")
 }
 
+# -----------------------------------------------------------
+# Cache Setup
+# -----------------------------------------------------------
+# Cache für JSON-Daten
+cache = {
+    "data": None,
+    "timestamp": 0,
+    "ttl": 300  # 5 Minuten Cache
+}
 
 # -----------------------------------------------------------
 # 3) Routes
@@ -125,20 +132,34 @@ def login():
 @jwt_required()
 def get_all_plans():
     """
-    Return all substitution data from json/teacher_replaced.json or json/formatted.json as fallback.
+    Return all substitution data with caching.
     """
+    current_time = time.time()
+
+    # Check if cache is still valid
+    if cache["data"] and (current_time - cache["timestamp"]) < cache["ttl"]:
+        logger.info("Serving from cache")
+        return jsonify(cache["data"]), 200
+
+    # Load fresh data
     files_to_try = ["json/teacher_replaced.json", "json/formatted.json"]
-    
+
     for file_path in files_to_try:
         try:
             with open(file_path, "r", encoding="utf-8") as f:
-                return jsonify(json.load(f)), 200
+                data = json.load(f)
+                # Update cache
+                cache["data"] = data
+                cache["timestamp"] = current_time
+                logger.info("Data loaded and cached from %s", file_path)
+                return jsonify(data), 200
         except FileNotFoundError:
             logger.warning("File '%s' not found.", file_path)
         except json.JSONDecodeError:
             logger.warning("JSON decode error for file '%s'.", file_path)
-    
+
     return jsonify({"substitution": []}), 200
+
 
 @api_bp.route("/healthcheck", methods=["GET"])
 def healthcheck():
