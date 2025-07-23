@@ -34,21 +34,10 @@ SHOULD_EXIT = False
 def task() -> None:
     """
     Execute the main runner script and log its execution.
-    First update teacher data, then run the main DSB scraper.
     """
     logger.info("Starting scheduled task execution...")
     try:
-        # First update teacher data
-        teacher_scraper = TeacherScraper(
-            url='https://www.goerres-koblenz.de/kollegium/',
-            output_path='schema/lehrer.json'
-        )
-        teacher_scraper.run()
-        
-        # Wait 200ms to ensure teacher data is fully processed
-        time.sleep(0.2)
-
-        # Then run main DSB scraping task
+        # Run main DSB scraping task
         runner.main(scheduled_mode=True)
         logger.info("Task completed successfully")
     except Exception as e:
@@ -89,6 +78,20 @@ def main() -> None:
     # Set up signal handlers for graceful shutdown
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
+
+    # Run teacher scraper once at startup
+    logger.info("Running teacher scraper at startup...")
+    try:
+        teacher_scraper = TeacherScraper(
+            url='https://www.goerres-koblenz.de/kollegium/',
+            output_path='schema/lehrer.json'
+        )
+        teacher_scraper.run()
+        logger.info("Teacher scraper completed successfully")
+        # Wait 200ms to ensure teacher data is fully processed
+        time.sleep(0.2)
+    except Exception as e:
+        logger.error("Error during teacher scraper execution: %s", e, exc_info=True)
 
     # Create an event for signaling the Flask process to shut down
     flask_exit = multiprocessing.Event()

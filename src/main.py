@@ -555,7 +555,7 @@ def parse_arguments() -> argparse.Namespace:
          |__/
     """
     parser = argparse.ArgumentParser(
-        prog="python scraper.py",
+        prog="python src/main.py",
         description=ascii_art + "\nScrape day-plans once per day, attach empty-first-column lines to the last course.",
         formatter_class=RawDescriptionRichHelpFormatter
     )
