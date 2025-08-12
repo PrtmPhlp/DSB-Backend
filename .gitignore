@@ -4,6 +4,7 @@ __pycache__
 testing.py
 *.json
 !schema.json
+!schema-sample.json
 .venv/*
 .env
 Archive/backup/*
