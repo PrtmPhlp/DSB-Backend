@@ -356,10 +356,10 @@ class CodeReplacer:
     Preserves original formatting (prefixes and parentheses) while replacing codes with full names.
 
     Teacher examples:
-    - "+Me (Mi)" -> "+Meyer (Miller)"
+    - "+Me (Mü)" -> "+Meier (Müller)"
     - "Bal, Stü" -> "Ballmann, Stüber"
-    - "+Mi" -> "+Miller"
-    - "(Mi)" -> "(Miller)"
+    - "+Mü" -> "+Müller"
+    - "(Mü)" -> "(Müller)"
 
     Subject examples (skipped for MSS classes):
     - "+M (D)" -> "+Mathe (Deutsch)"
