@@ -15,13 +15,13 @@ Installation:
 import os
 import json
 import socket
-import logging
 import time
 
 from flask import Flask, Blueprint, Response, abort, jsonify, make_response, request
 from flask_jwt_extended import create_access_token, jwt_required
 from werkzeug.security import check_password_hash, generate_password_hash
 from waitress import serve
+from dotenv import dotenv_values
 
 # Rate-limiting
 from flask_limiter.util import get_remote_address
@@ -35,13 +35,63 @@ from logger_setup import LoggerSetup
 logger = LoggerSetup.setup_logger("API")
 
 # -----------------------------------------------------------
-# 2) Blueprint & Auth Setup
+# 2) Credentials Loading
+# -----------------------------------------------------------
+def load_app_credentials(env_file: str = ".env") -> dict:
+    """
+    Load API credentials from .env file or OS environment variables.
+    Similar to EnvCredentialsLoader from main.py but simplified for app usage.
+    """
+    credentials = {}
+    
+    try:
+        # Try loading from .env file first
+        env_values = dotenv_values(env_file)
+        if env_values and "API_USERNAME" in env_values and "API_PASSWORD" in env_values:
+            api_username = env_values["API_USERNAME"]
+            api_password = env_values["API_PASSWORD"]
+            if not api_username or not api_password:
+                raise ValueError("API_USERNAME or API_PASSWORD is empty.")
+            credentials = {
+                "API_USERNAME": api_username,
+                "API_PASSWORD": api_password
+            }
+            logger.info("Loaded API credentials from .env file")
+        else:
+            raise ValueError("API_USERNAME/API_PASSWORD not found in .env")
+    except (FileNotFoundError, ValueError):
+        logger.warning("Failed to load credentials from .env, attempting OS environment...")
+        api_username = os.getenv("API_USERNAME")
+        api_password = os.getenv("API_PASSWORD")
+        if not api_username or not api_password:
+            # Fall back to defaults if no environment variables found
+            logger.warning("No API_USERNAME/API_PASSWORD found in environment, using defaults")
+            credentials = {
+                "API_USERNAME": "274583",
+                "API_PASSWORD": "johann"
+            }
+        else:
+            credentials = {
+                "API_USERNAME": api_username,
+                "API_PASSWORD": api_password
+            }
+    
+    # Mask password for logging
+    masked_password = credentials["API_PASSWORD"][:3] + "*" * (len(credentials["API_PASSWORD"]) - 3) if len(credentials["API_PASSWORD"]) > 3 else credentials["API_PASSWORD"]
+    logger.info("Using API Username: %s, Password: %s", credentials["API_USERNAME"], masked_password)
+    return credentials
+
+# Load credentials at startup
+app_credentials = load_app_credentials()
+
+# -----------------------------------------------------------
+# 3) Blueprint & Auth Setup
 # -----------------------------------------------------------
 api_bp = Blueprint("api", __name__)
 
-# Mock user database
+# User database with credentials from environment
 users_db = {
-    "274583": generate_password_hash("johann")
+    app_credentials["API_USERNAME"]: generate_password_hash(app_credentials["API_PASSWORD"])
 }
 
 # -----------------------------------------------------------
@@ -113,8 +163,8 @@ def login():
     if not (request.is_json or request.form):
         return jsonify({"msg": "Missing JSON or form data."}), 400
 
-    username = request.form.get('username') if request.form else request.json.get('username')
-    password = request.form.get('password') if request.form else request.json.get('password')
+    username = request.form.get('username') if request.form else (request.json.get('username') if request.json else None)
+    password = request.form.get('password') if request.form else (request.json.get('password') if request.json else None)
 
     if not username or not password:
         return jsonify({"msg": "Missing username or password"}), 400
