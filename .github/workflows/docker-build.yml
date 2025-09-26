@@ -91,15 +91,26 @@ jobs:
           WEBHOOK_BASIC_AUTH: ${{ secrets.WEBHOOK_BASIC_AUTH }}
           WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
         run: |
-          # Mask secrets in logs just in case
+          # Mask secrets in logs
           echo "::add-mask::$WEBHOOK_BASIC_AUTH"
           echo "::add-mask::$WEBHOOK_URL"
 
-          # Call webhook without printing response or progress
-          curl -fsSL -u "$WEBHOOK_BASIC_AUTH" -X POST \
+          # Trim any accidental newlines from secrets
+          TRIMMED_AUTH=$(printf %s "$WEBHOOK_BASIC_AUTH" | tr -d '\r\n')
+          TRIMMED_URL=$(printf %s "$WEBHOOK_URL" | tr -d '\r\n')
+
+          # Build Authorization header explicitly (Basic base64(user:pass))
+          AUTH_B64=$(printf %s "$TRIMMED_AUTH" | base64 | tr -d '\r\n')
+
+          # Call webhook without printing response or progress; retry a few transient failures
+          curl -fsSL -X POST \
+            -H "Authorization: Basic $AUTH_B64" \
             -H 'Content-Type: application/json' \
+            -H 'Accept: application/json' \
+            -A 'GitHubActionsWebhook/1.0' \
+            --retry 3 --retry-delay 2 --retry-connrefused --max-time 20 \
             -d '{"repository":"${{ github.repository }}","workflow":"${{ github.workflow }}","run_id":"${{ github.run_id }}","status":"${{ needs.build-and-push-image.result }}","sha":"${{ github.sha }}","ref":"${{ github.ref }}"}' \
-            "$WEBHOOK_URL" \
+            "$TRIMMED_URL" \
             --output /dev/null || true
 
   # deploy:
