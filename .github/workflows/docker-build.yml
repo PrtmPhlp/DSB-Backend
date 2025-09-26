@@ -82,6 +82,26 @@ jobs:
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
 
+  deploy:
+    needs: build-and-push-image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call deployment webhook
+        env:
+          WEBHOOK_BASIC_AUTH: ${{ secrets.WEBHOOK_BASIC_AUTH }}
+          WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
+        run: |
+          # Mask secrets in logs just in case
+          echo "::add-mask::$WEBHOOK_BASIC_AUTH"
+          echo "::add-mask::$WEBHOOK_URL"
+
+          # Call webhook without printing response or progress
+          curl -fsSL -u "$WEBHOOK_BASIC_AUTH" -X POST \
+            -H 'Content-Type: application/json' \
+            -d '{"repository":"${{ github.repository }}","workflow":"${{ github.workflow }}","run_id":"${{ github.run_id }}","status":"${{ needs.build-and-push-image.result }}","sha":"${{ github.sha }}","ref":"${{ github.ref }}"}' \
+            "$WEBHOOK_URL" \
+            --output /dev/null || true
+
   # deploy:
   #   needs: build-and-push-image
   #   runs-on: ubuntu-latest

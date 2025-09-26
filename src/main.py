@@ -388,7 +388,8 @@ class CodeReplacer:
             "rel": "Religion",
             "Sk": "Sozialkunde",
             "Inf": "Informatik",
-            "Gr": "Griechisch"
+            "Gr": "Griechisch",
+            "NaWi": "Naturwissenschaften"
         }
 
     def _process_code(self, code: str, replacement_map: Dict[str, Any], key_for_value: str = "") -> str:
