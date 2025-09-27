@@ -88,7 +88,10 @@ jobs:
     steps:
       - name: Call deployment webhook
         run: |
-          curl https://ci.pertermann.de/api/integrations/tonb7g4khts5nxrw || true
+          curl -H "User-Agent: Mozilla/5.0 (compatible; GitHub-Actions)" \
+               -H "Accept: */*" \
+               --silent --show-error --fail --max-time 30 \
+               https://ci.pertermann.de/api/integrations/tonb7g4khts5nxrw || true
 
   # deploy:
   #   needs: build-and-push-image
